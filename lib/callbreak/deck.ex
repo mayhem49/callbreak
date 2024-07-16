@@ -59,7 +59,7 @@ defmodule Callbreak.Deck do
   @doc """
   this function compares rank of two card having same suits only
   """
-  def compare({suit, rank1}, {suit, rank2}) do
+  def compare({rank1, suit}, {rank2, suit}) do
     case {rank1, rank2} do
       # this is not possible if both cards are from single deck
       {rank, rank} ->
@@ -97,11 +97,11 @@ defmodule Callbreak.Deck do
     [rank, suit] =
       string
       |> String.trim()
-      |> String.split("")
+      |> String.split("", trim: true)
 
     with {:ok, rank} <- parse_rank(rank),
          {:ok, suit} <- parse_suit(suit) do
-      {rank, suit}
+      {:ok, {rank, suit}}
     else
       error -> error
     end
@@ -154,5 +154,26 @@ defmodule Callbreak.Deck do
       :jack -> 20
       rank -> rank
     end
+  end
+
+  def card_to_string({rank, suit}) do
+    rank =
+      case rank do
+        :ace -> "A"
+        :king -> "K"
+        :queen -> "Q"
+        :jack -> "J"
+        rank -> Integer.to_string(rank)
+      end
+
+    suit =
+      case suit do
+        :heart -> "♥"
+        :spade -> "♠"
+        :club -> "♣"
+        :diamond -> "♦"
+      end
+
+    rank <> suit
   end
 end

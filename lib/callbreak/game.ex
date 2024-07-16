@@ -37,7 +37,7 @@ defmodule Callbreak.Game do
     current_player = get_next_player(game, dealer)
 
     %{game | current_hand: Hand.new(), dealer: dealer, current_player: current_player}
-    |> notify_dealer_to_all(game.dealer)
+    |> notify_dealer_to_all()
     |> deal()
     |> ask_current_player_to_bid()
   end
@@ -53,8 +53,8 @@ defmodule Callbreak.Game do
         |> rotate_current_player()
         |> then(fn game ->
           if Hand.is_bidding_completed?(hand),
-            do: ask_current_player_to_bid(game),
-            else: ask_current_player_to_play(game)
+            do: ask_current_player_to_play(game),
+            else: ask_current_player_to_bid(game)
         end)
         |> return_instructions_and_game()
 
@@ -162,10 +162,10 @@ defmodule Callbreak.Game do
     end)
   end
 
-  defp notify_dealer_to_all(game, dealer) do
+  defp notify_dealer_to_all(game) do
     game
-    |> notify_player(dealer, {:dealer, :self})
-    |> notify_except(dealer, {:dealer, dealer})
+    |> notify_player(game.dealer, {:dealer, :self})
+    |> notify_except(game.dealer, {:dealer, game.dealer})
   end
 
   defp notify_except(game, except_player, instruction) do

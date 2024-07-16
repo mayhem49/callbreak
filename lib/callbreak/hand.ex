@@ -71,9 +71,7 @@ defmodule Callbreak.Hand do
           current_trick: [{player, play_card} | hand.current_trick]
       }
 
-      IO.inspect(hand.current_trick, label: :trick)
       {hand, winner} = maybe_find_trick_winner(hand)
-      IO.inspect(winner, label: :winner)
       {:ok, hand, winner}
     else
       {:error, {:non_existent_card, play_card}}

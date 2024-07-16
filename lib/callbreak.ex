@@ -1,5 +1,29 @@
 defmodule Callbreak do
+  use Application
+
   alias Callbreak.Game
+
+  @impl true
+  def start(_start_type, _start_args) do
+    game_id = :my_callbreak
+    # game_id = :only_one_game_currently 
+    children = [
+      {Registry, keys: :unique, name: Callbreak.Registry},
+      {Callbreak.Player, {game_id, :p1, :bot}},
+      {Callbreak.Player, {game_id, :p2, :bot}},
+      {Callbreak.Player, {game_id, :p3, :bot}},
+      {Callbreak.Player, {game_id, :p4, :bot}},
+      {Callbreak.GameServer, {game_id, [:p1, :p2, :p3, :p4]}}
+    ]
+
+    # one for all currently
+    # todo separate supervisor for players
+    Supervisor.start_link(children, strategy: :one_for_all)
+  end
+
+  def service_name(service_id) do
+    {:via, Registry, {Callbreak.Registry, service_id}}
+  end
 
   def new do
     p = [:a, :b, :c, :d]
@@ -28,13 +52,12 @@ defmodule Callbreak do
     |> Enum.reduce(
       game,
       fn _, g ->
-        {i, g} = Game.handle_play(g, g.current_player, get_random_card(g, g.current_player))
-        {i, g} = Game.handle_play(g, g.current_player, get_random_card(g, g.current_player))
-        {i, g} = Game.handle_play(g, g.current_player, get_random_card(g, g.current_player))
-        {i, g} = Game.handle_play(g, g.current_player, get_random_card(g, g.current_player))
+        {_i, g} = Game.handle_play(g, g.current_player, get_random_card(g, g.current_player))
+        {_i, g} = Game.handle_play(g, g.current_player, get_random_card(g, g.current_player))
+        {_i, g} = Game.handle_play(g, g.current_player, get_random_card(g, g.current_player))
+        {_i, g} = Game.handle_play(g, g.current_player, get_random_card(g, g.current_player))
 
-        IO.inspect(i)
-        %{g | instructions: i}
+        g
       end
     )
   end
@@ -54,6 +77,6 @@ defmodule Callbreak do
   end
 
   def get_random_card(game, player) do
-    Enum.random(Map.get(game.current_hand.cards, game.current_player))
+    Enum.random(Map.get(game.current_hand.cards, player))
   end
 end

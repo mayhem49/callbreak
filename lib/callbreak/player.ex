@@ -2,31 +2,26 @@ defmodule Callbreak.Player do
   use GenServer
 
   @trump_suit :spade
-  alias Callbreak.{GameServer}
+  alias Callbreak.{GameServer, Deck}
 
-  def notify(player_id, instruction) do
-    GenServer.cast(Callbrak.service_name(player_id), instruction)
-  end
-
-  # Callbrak.GameServer.start_game :game, :p1, :p2
-
-  def child_spec({_, player_id, _, _} = arg) do
+  def child_spec({_, player_id, _} = arg) do
     %{
       id: player_id,
       start: {__MODULE__, :start_link, [arg]}
     }
   end
 
-  def start_link({game_id, player_id, player_type, symbol}) do
-    IO.puts("player.start_link #{player_id}")
+  def start_link({game_id, player_id, _} = arg) do
+    IO.puts("starting_player: #{game_id}-#{player_id}")
+    GenServer.start_link(__MODULE__, arg, name: Callbreak.service_name(player_id))
+  end
 
-    GenServer.start_link(__MODULE__, {game_id, player_id, player_type, symbol},
-      name: Callbrak.service_name(player_id)
-    )
+  def notify(player_id, instruction) do
+    GenServer.cast(Callbreak.service_name(player_id), instruction)
   end
 
   @impl true
-  def init({game_id, player_id, player_type, symbol}) when symbol in [:o, :x] do
+  def init({game_id, player_id, player_type}) do
     {:ok,
      %{
        game_id: game_id,
@@ -37,7 +32,8 @@ defmodule Callbreak.Player do
        cards: [],
        current_trick: [],
        bids: %{},
-       tricks: %{}
+       tricks: %{},
+       scorecard: []
      }}
   end
 
@@ -45,17 +41,34 @@ defmodule Callbreak.Player do
   def handle_cast({:dealer, dealer}, state), do: {:noreply, %{state | dealer: dealer}}
 
   @impl true
-  def handle_cast({:cards, cards}, state), do: {:noreply, %{state | cards: cards}}
+  def handle_cast({:cards, cards}, state),
+    do:
+      {:noreply,
+       %{
+         state
+         | cards:
+             cards
+             |> Enum.group_by(fn {_, suit} -> suit end)
+             |> Enum.flat_map(fn {_suit, card} ->
+               Enum.sort(card, {:desc, Deck})
+             end)
+       }}
 
   # maybe merge play_success and play?
   # todo: remove from state.cards
   @impl true
   def handle_cast({:play_success, card}, state),
-    do: {:noreply, %{state | current_trick: [{state.player_id, card} | state.current_trick]}}
+    do:
+      {:noreply,
+       %{
+         state
+         | cards: List.delete(state.cards, card),
+           current_trick: [{state.player_id, card} | state.current_trick]
+       }}
 
   @impl true
-  def handle_cast({:play, player_card}, state),
-    do: {:noreply, %{state | current_trick: [player_card | state.current_trick]}}
+  def handle_cast({:play, player, card}, state),
+    do: {:noreply, %{state | current_trick: [{player, card} | state.current_trick]}}
 
   # maybe merge bid_success and bid?
   @impl true
@@ -67,16 +80,28 @@ defmodule Callbreak.Player do
     do: {:noreply, %{state | bids: Map.put(state.bids, player, bid)}}
 
   @impl true
+  def handle_cast({:invalid_bid, bid}, state),
+    do: GenServer.cast(self(), {:bid})
+
+  @impl true
   def handle_cast({:trick_winner, winner}, state),
     do:
       {:noreply,
        %{state | tricks: Map.update(state.tricks, winner, 1, &(&1 + 1)), current_trick: []}}
 
   @impl true
-  def handle_cast({:winner, winner}, state), do: {:noreply, state}
+  def handle_cast({:winner, _winner}, state), do: {:noreply, state}
 
   @impl true
-  def handle_cast({:game_completed, winner}, state), do: {:noreply, state}
+  def handle_cast({:winner, _winner}, state), do: {:noreply, state}
+
+  @impl true
+  def handle_cast({:game_completed}, state), do: {:noreply, state}
+
+  @impl true
+  def handle_cast({:scorecard, scorecard}, state) do
+    {:noreply, %{state | scorecard: [scorecard | state.scorecard]}}
+  end
 
   @impl true
   def handle_cast({:bid}, state) do
@@ -93,28 +118,48 @@ defmodule Callbreak.Player do
 
     GameServer.bid(state.game_id, state.player_id, bid)
 
-    {:noreply, %{state | bid: bid}}
+    {:noreply, state}
   end
 
   @impl true
   def handle_cast({:play}, state) do
     # print_message(state, "opponents", opponents)
-    bid =
+    play_card =
       case state.player_type do
         :interactive ->
-          read_play_card(state)
+          state
+          |> read_play_card()
+          |> IO.inspect(label: "your card")
 
         :bot ->
           bot_play(state)
           # Board.minmax(state.board, state.symbol)
       end
 
-    GameServer.bid(state.game_id, state.player_id, bid)
-    {:noreply, %{state | bid: bid}}
+    GameServer.play(state.game_id, state.player_id, play_card)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:opponents, opponents}, state) do
+    # print_message(state, "opponents", opponents)
+    %{state | opponents: opponents}
+
+    {:noreply, state}
   end
 
   def read_play_card(state) do
-    input = IO.gets("#{state.player_id} play_card(2h): ")
+    print_cards(state)
+
+    prompt =
+      if state.current_trick == [] do
+        "#{state.player_id} play_first_card(2h)"
+      else
+        print_tricks(state)
+        "#{state.player_id} play_card(2h): "
+      end
+
+    input = IO.gets(prompt)
 
     case Deck.parse_card(input) do
       {:ok, card} ->
@@ -127,6 +172,8 @@ defmodule Callbreak.Player do
   end
 
   def read_bid(state) do
+    print_cards(state)
+
     bid =
       IO.gets("#{state.player_id} bet(1-13): ")
       |> String.trim()
@@ -142,7 +189,7 @@ defmodule Callbreak.Player do
     end
   end
 
-  def bot_bid(state) do
+  def bot_bid(_state) do
     # for now
     3
   end
@@ -155,12 +202,13 @@ defmodule Callbreak.Player do
   else if there is card of trump_suit: play the minimum of trump suit
   else: play the smallest of remaining two suits
   """
-  def bot_play(%{tricks: [], cards: cards}), do: Enum.random(cards)
+  def bot_play(%{current_trick: [], cards: cards}), do: Enum.random(cards)
 
   def bot_play(state) do
-    {_, curr_suit} = List.last(state.cards)
+    {_, {_, curr_suit}} = List.last(state.current_trick)
     grouped_cards = Enum.group_by(state.cards, fn {_, suit} -> suit end)
 
+    # IO.inspect {grouped_cards, curr_suit} , label: :botplay
     case Map.fetch(grouped_cards, curr_suit) do
       {:ok, suit_cards} ->
         Enum.max_by(suit_cards, &Deck.rank_to_value/1)
@@ -178,26 +226,44 @@ defmodule Callbreak.Player do
     end
   end
 
-  @impl true
-  def handle_cast({:opponents, opponents}, state) do
-    # print_message(state, "opponents", opponents)
-    %{state | opponents: opponents}
+  defp print_message(%{player_type: :interactive} = state, message),
+    do: IO.puts("#{state.player_id}: #{message}")
 
-    {:noreply, state}
+  defp print_message(_, _), do: nil
+
+  defp print_message(%{player_type: :interactive} = state, label, value) do
+    print_message(state, "#{label}: #{value}")
   end
 
-  defp read_move(state) do
-    IO.gets("#{state.player_id} move(x,y): ")
-    |> String.split(",")
-    |> Enum.map(&String.trim/1)
-    |> Enum.map(&String.to_integer(&1))
-    |> List.to_tuple()
+  defp print_message(_, _, _), do: nil
+
+  defp print_tricks(state) do
+    IO.puts("current round:")
+
+    state.current_trick
+    |> Enum.reverse()
+    |> Enum.each(fn {player, card} ->
+      card
+      |> Deck.card_to_string()
+      |> IO.write()
+
+      IO.write(" ")
+    end)
+
+    IO.puts("")
   end
 
-  defp print_message(state, message) do
-    IO.puts("#{state.player_id}: #{message}")
-  end
+  defp print_cards(state) do
+    IO.inspect("your cards: ")
 
-  defp alternate_symbol(:o), do: :x
-  defp alternate_symbol(:x), do: :o
+    Enum.each(state.cards, fn card ->
+      card
+      |> Deck.card_to_string()
+      |> IO.write()
+
+      IO.write(" ")
+    end)
+
+    IO.puts("")
+  end
 end
