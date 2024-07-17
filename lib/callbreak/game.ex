@@ -4,6 +4,7 @@ defmodule Callbreak.Game do
   # defstruct [ # list of all players :players, player whose turn is it to play :current_player, each 4 sequence of cards played is one hand :current_hand, total 5 rounds but round that is being played currently :current_round, points scored in previous round :scorecard, :hand_count, current :round_count, instructions to be sent to players :instructions ]
 
   defstruct [
+    :game_id,
     :players,
     # tracks the current hand being played(all tricks and call and individual players' cards)
     :current_hand,
@@ -16,8 +17,9 @@ defmodule Callbreak.Game do
     :instructions
   ]
 
-  def new([_, _, _, _] = players) do
+  def new({game_id, [_, _, _, _] = players}) do
     game = %__MODULE__{
+      game_id: game_id,
       players: players,
       current_hand: nil,
       dealer: Enum.random(players),

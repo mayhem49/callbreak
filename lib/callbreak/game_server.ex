@@ -16,37 +16,35 @@ defmodule Callbreak.GameServer do
   # call_back
   @impl true
   def init({game_id, players}) do
-    state = %{game: nil, game_id: game_id}
-
     {:ok,
-     players
+     {game_id, players}
      |> Game.new()
-     |> handle_game_instructions(state)}
+     |> handle_game_instructions()}
   end
 
   @impl true
-  def handle_cast({:play, player, play_card}, state) do
-    state =
-      state.game
+  def handle_cast({:play, player, play_card}, game) do
+    game =
+      game
       |> Game.handle_play(player, play_card)
-      |> handle_game_instructions(state)
+      |> handle_game_instructions()
 
-    {:noreply, state}
+    {:noreply, game}
   end
 
   @impl true
-  def handle_cast({:bid, player, bid}, state) do
-    state =
-      state.game
+  def handle_cast({:bid, player, bid}, game) do
+    game =
+      game
       |> Game.handle_bid(player, bid)
-      |> handle_game_instructions(state)
+      |> handle_game_instructions()
 
-    {:noreply, state}
+    {:noreply, game}
   end
 
-  defp handle_game_instructions({instructions, game}, state) do
+  defp handle_game_instructions({instructions, game}) do
     Enum.each(instructions, &handle_instruction(&1))
-    %{state | game: game}
+    game
   end
 
   defp handle_instruction({:notify_player, player, message_payload}) do
