@@ -34,7 +34,7 @@ defmodule Callbreak.Game do
     |> return_instructions_and_game()
   end
 
-  def new_hand(game) do
+  defp new_hand(game) do
     # below code means:
     # randomly chose dealer in `new` will be shifted by one
     dealer = get_next_player(game, game.dealer)
@@ -92,16 +92,16 @@ defmodule Callbreak.Game do
     end
   end
 
-  # out of turn move
-  def handle_bid(game, player, _card) do
+  # out of turn play
+  def handle_play(game, player, _card) do
     game
     |> notify_player(player, {:out_of_turn})
     |> return_instructions_and_game()
   end
 
   # handle current trick completion
-  # it cascades to `check_hand_completion`
-  # which cascades to `check_game_completion`
+  # it cascades to `handle_hand_completion`
+  # which cascades to `handle_game_completion`
   def handle_trick_completion(game, nil) do
     game
     |> rotate_current_player()
@@ -112,10 +112,10 @@ defmodule Callbreak.Game do
     game
     |> Map.put(:current_player, winner)
     |> notify_to_all({:trick_winner, winner})
-    |> check_hand_completion()
+    |> handle_hand_completion()
   end
 
-  def check_hand_completion(game) do
+  def handle_hand_completion(game) do
     case Hand.maybe_hand_completed(game.current_hand) do
       nil ->
         ask_current_player_to_play(game)
@@ -126,11 +126,11 @@ defmodule Callbreak.Game do
 
         %{game | scorecard: acc_scorecard}
         |> notify_to_all({:scorecard, scorecard, points})
-        |> check_game_completion()
+        |> handle_game_completion()
     end
   end
 
-  def check_game_completion(game) do
+  def handle_game_completion(game) do
     if Enum.count(game.scorecard) == 5 do
       game
       |> notify_to_all({:winner, "random player for now"})
