@@ -6,31 +6,21 @@ defmodule Callbreak do
   @impl true
   def start(_start_type, _start_args) do
     game_id = :my_callbreak
-    # game_id = :only_one_game_currently 
-    #    children = [
-    #      {Callbreak.Player, {game_id, :p1, :bot}},
-    #      {Callbreak.Player, {game_id, :p2, :bot}},
-    #      {Callbreak.Player, {game_id, :p3, :bot}},
-    #      {Callbreak.Player, {game_id, :p4, :bot}},
-    #      {Callbreak.GameServer, {game_id, [:p1, :p2, :p3, :p4]}}
-    #    ]
-
-    # one for all currently
-    # todo separate supervisor for players
 
     children = [
       {Registry, keys: :unique, name: Callbreak.Registry},
       Callbreak.GameDynamicSupervisor
-      #{Callbreak.GameSupervisor, {game_id, players}}
+      # {Callbreak.GameSupervisor, {game_id, players}}
     ]
-    return_value  = Supervisor.start_link(children, strategy: :one_for_all)
 
-    players = [{:p1, :bot}, {:p2, :bot}, {:p3, :bot}, {:p4, :bot}]
+    return_value = Supervisor.start_link(children, strategy: :one_for_all)
+
+    players = [{:p1, :bot}, {:p2, :bot}, {:p3, :bot}, {:p4, :interactive}]
     game_id = :my_callbreak
     Callbreak.GameDynamicSupervisor.start_game({game_id, players})
-    players = [{:p5, :bot}, {:p6, :bot}, {:p7, :bot}, {:p8, :bot}]
-    game_id = :my_callbreak_another
-    Callbreak.GameDynamicSupervisor.start_game({game_id, players})
+    # players = [{:p5, :bot}, {:p6, :bot}, {:p7, :bot}, {:p8, :bot}]
+    # game_id = :my_callbreak_another
+    # Callbreak.GameDynamicSupervisor.start_game({game_id, players})
 
     return_value
   end

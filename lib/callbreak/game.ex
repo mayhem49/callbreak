@@ -19,9 +19,11 @@ defmodule Callbreak.Game do
   def new([_, _, _, _] = players) do
     game = %__MODULE__{
       players: players,
-      instructions: [],
+      current_hand: nil,
+      dealer: Enum.random(players),
+      current_player: nil,
       scorecard: [],
-      dealer: Enum.random(players)
+      instructions: []
     }
 
     game
@@ -42,8 +44,7 @@ defmodule Callbreak.Game do
     |> ask_current_player_to_bid()
   end
 
-  # todo check turn
-  def handle_bid(game, player, bid) do
+  def handle_bid(%{current_player: player} = game, player, bid) do
     case Hand.take_bid(game.current_hand, player, bid) do
       {:ok, hand} ->
         game
@@ -65,8 +66,14 @@ defmodule Callbreak.Game do
     end
   end
 
-  # todo check turn
-  def handle_play(game, player, play_card) do
+  # out of turn biding
+  def handle_bid(game, player, _bid) do
+    game
+    |> notify_player(player, {:out_of_turn})
+    |> return_instructions_and_game()
+  end
+
+  def handle_play(%{current_player: player} = game, player, play_card) do
     case Hand.play(game.current_hand, player, play_card) do
       {:ok, hand, winner} ->
         game
@@ -81,6 +88,13 @@ defmodule Callbreak.Game do
         |> notify_player(player, err_msg)
         |> return_instructions_and_game()
     end
+  end
+
+  # out of turn move
+  def handle_bid(game, player, _card) do
+    game
+    |> notify_player(player, {:out_of_turn})
+    |> return_instructions_and_game()
   end
 
   # handle current trick completion
@@ -129,7 +143,6 @@ defmodule Callbreak.Game do
     acc =
       Enum.reduce(scorecard, %{}, fn trick_scorecard, acc ->
         Enum.reduce(trick_scorecard, acc, fn {player, {bid, extra_trick}}, acc ->
-          # todoo maybe a bug where map.update is used in another place
           Map.update(acc, player, {bid, extra_trick}, fn
             {curr_bid, curr_extra_trick} -> {curr_bid + bid, curr_extra_trick + extra_trick}
           end)

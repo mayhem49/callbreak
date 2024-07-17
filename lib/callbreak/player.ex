@@ -79,11 +79,38 @@ defmodule Callbreak.Player do
   def handle_cast({:bid, player, bid}, state),
     do: {:noreply, %{state | bids: Map.put(state.bids, player, bid)}}
 
+  # these error shouldn't occur [just in case]
+  @impl true
+  def handle_cast({error, card} = message, state)
+      when error in [:invalid_play_card, :non_existent_card] do
+    if state.player_type == :interactive,
+      do: IO.inspect(message, label: "error")
+
+    GenServer.cast(self(), {:play})
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast(message, state)
+      when message in [
+             {:invalid_play_card},
+             {:out_of_turn},
+             {:not_playing_currently},
+             {:not_bidding_currently}
+           ] do
+    if state.player_type == :interactive,
+      do: IO.inspect("Error: #{message}")
+
+    {:noreply, state}
+  end
+
   @impl true
   def handle_cast({:invalid_bid, _bid}, state) do
     GenServer.cast(self(), {:bid})
     {:noreply, state}
   end
+
+  # end of error
 
   @impl true
   def handle_cast({:trick_winner, winner}, state),
@@ -96,15 +123,15 @@ defmodule Callbreak.Player do
 
   @impl true
   def handle_cast({:game_completed}, state) do
-    IO.inspect :game_completed
+    IO.inspect(:game_completed)
     {:noreply, state}
   end
 
   @impl true
-  def handle_cast({:scorecard, scorecard, points}, state) do
-    #IO.inspect([scorecard | state.scorecard], label: "scorecard")
-    #IO.inspect(points, label: "points")
-    #IO.puts("")
+  def handle_cast({:scorecard, scorecard, _points}, state) do
+    # IO.inspect([scorecard | state.scorecard], label: "scorecard")
+    # IO.inspect(points, label: "points")
+    # IO.puts("")
     {:noreply, %{state | scorecard: [scorecard | state.scorecard]}}
   end
 
@@ -225,7 +252,8 @@ defmodule Callbreak.Player do
 
           :error ->
             Enum.min_by(state.cards, &Deck.rank_to_value/1)
-            # todo: play whichever have more no of cards
+            # todo: bot improvement
+            # play whichever have more no of cards
             # also factor in the cards played
         end
     end

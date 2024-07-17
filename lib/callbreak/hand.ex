@@ -52,33 +52,84 @@ defmodule Callbreak.Hand do
   def take_bid(_, _, _), do: {:error, {:not_bidding_currently}}
 
   def play(%{hand_state: :playing} = hand, player, play_card) do
-    # todo don't allow random playihng
-    # but allow for now to test
+    case validate_card_play(hand, player, play_card) do
+      {:ok, card_index} ->
+        rem_card =
+          hand.cards
+          |> Map.get(player)
+          |> List.delete_at(card_index)
+
+        hand = %{
+          hand
+          | cards: Map.put(hand.cards, player, rem_card),
+            current_trick: [{player, play_card} | hand.current_trick]
+        }
+
+        {hand, winner} = maybe_find_trick_winner(hand)
+        {:ok, hand, winner}
+
+      {:error, err} ->
+        {:error, err}
+    end
+  end
+
+  def play(_, _, _), do: {:error, {:not_playing_currently}}
+
+  @doc """
+  checks if the `card` player wants to play is valid.
+  It is invalid in following case:
+  = Player donot have that card
+  = Played another suit card despite having card of current suit
+
+  If valid: {:ok, index}
+  index -> index of card in player's card
+  else: {:error, reason}
+
+  todo: see rules about restriction in playing spade if player donot have card of current suit
+  todo: restrict playing smaller cards if bigger cards available
+  """
+  defp validate_card_play(hand, player, play_card) do
     card_index =
       hand.cards
       |> Map.get(player)
       |> Enum.find_index(fn card -> card == play_card end)
 
     if card_index do
-      rem_card =
-        hand.cards
-        |> Map.get(player)
-        |> List.delete_at(card_index)
+      curr_suit = current_suit(hand)
+      {play_rank, play_suit} = play_card
 
-      hand = %{
-        hand
-        | cards: Map.put(hand.cards, player, rem_card),
-          current_trick: [{player, play_card} | hand.current_trick]
-      }
-
-      {hand, winner} = maybe_find_trick_winner(hand)
-      {:ok, hand, winner}
+      if !curr_suit || play_suit == curr_suit ||
+           !contains_card_of_same_suit?(hand, player, curr_suit) do
+        {:ok, card_index}
+      else
+        {:error, {:invalid_play_card, play_card}}
+      end
     else
       {:error, {:non_existent_card, play_card}}
     end
   end
 
-  def play(_, _, _), do: {:error, {:not_playing_currently}}
+  @doc """
+  returns the current suit if exists
+  """
+  defp current_suit(hand) do
+    case List.last(hand.current_trick) do
+      nil -> nil
+      {_, {_, suit}} -> suit
+    end
+  end
+
+  @doc """
+  returns if the player contains card of `suit` suit
+  """
+  defp contains_card_of_same_suit?(hand, player, suit) do
+    hand.cards
+    |> Map.get(player)
+    |> Enum.any?(fn
+      {_, ^suit} -> true
+      _ -> false
+    end)
+  end
 
   defp maybe_find_trick_winner(hand) do
     if Enum.count(hand.current_trick) == 4 do
