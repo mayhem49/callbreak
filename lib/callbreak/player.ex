@@ -95,13 +95,16 @@ defmodule Callbreak.Player do
   def handle_cast({:winner, _winner}, state), do: {:noreply, state}
 
   @impl true
-  def handle_cast({:game_completed}, state), do: {:noreply, state}
+  def handle_cast({:game_completed}, state) do
+    IO.inspect :game_completed
+    {:noreply, state}
+  end
 
   @impl true
   def handle_cast({:scorecard, scorecard, points}, state) do
-    IO.inspect([scorecard | state.scorecard], label: "scorecard")
-    IO.inspect(points, label: "points")
-    IO.puts("")
+    #IO.inspect([scorecard | state.scorecard], label: "scorecard")
+    #IO.inspect(points, label: "points")
+    #IO.puts("")
     {:noreply, %{state | scorecard: [scorecard | state.scorecard]}}
   end
 
