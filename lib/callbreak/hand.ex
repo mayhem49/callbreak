@@ -119,13 +119,16 @@ defmodule Callbreak.Hand do
   def maybe_hand_completed(hand) do
     # todo update about hand completion
     if is_hand_completed?(hand) do
-      %{bids: hand.bids, score: hand.tricks}
-      # todo: better scorecard (calculated one)
-      # TODO
-      # TODO
-      # TODO
-      # TODO
-      # send scorecard
+      Enum.reduce(hand.bids, %{}, fn {player, bid}, acc ->
+        trick_won = Map.get(hand.tricks, player, 0)
+
+        score =
+          if trick_won > bid,
+            do: bid + (trick_won - bid) / 10,
+            else: -bid
+
+        Map.put(acc, player, score)
+      end)
     end
   end
 end
