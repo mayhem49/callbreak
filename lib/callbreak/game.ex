@@ -105,8 +105,11 @@ defmodule Callbreak.Game do
         ask_current_player_to_play(game)
 
       scorecard ->
-        %{game | scorecard: [scorecard | game.scorecard]}
-        |> notify_to_all({:scorecard, scorecard})
+        acc_scorecard = [scorecard | game.scorecard]
+        points = calculate_points(acc_scorecard)
+
+        %{game | scorecard: acc_scorecard}
+        |> notify_to_all({:scorecard, scorecard, points})
         |> check_game_completion()
     end
   end
@@ -114,13 +117,28 @@ defmodule Callbreak.Game do
   def check_game_completion(game) do
     if Enum.count(game.scorecard) == 5 do
       game
-      # TODO: calculate points
       |> notify_to_all({:winner, "random player for now"})
       |> notify_to_all({:game_completed})
     else
       game
       |> new_hand()
     end
+  end
+
+  def calculate_points(scorecard) do
+    acc =
+      Enum.reduce(scorecard, %{}, fn trick_scorecard, acc ->
+        Enum.reduce(trick_scorecard, acc, fn {player, {bid, extra_trick}}, acc ->
+          # todoo maybe a bug where map.update is used in another place
+          Map.update(acc, player, {bid, extra_trick}, fn
+            {curr_bid, curr_extra_trick} -> {curr_bid + bid, curr_extra_trick + extra_trick}
+          end)
+        end)
+      end)
+
+    Enum.reduce(acc, %{}, fn
+      {player, {bid, extra_trick}}, acc -> Map.put(acc, player, bid + extra_trick / 10)
+    end)
   end
 
   def return_instructions_and_game(game) do

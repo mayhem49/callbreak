@@ -117,15 +117,14 @@ defmodule Callbreak.Hand do
   end
 
   def maybe_hand_completed(hand) do
-    # todo update about hand completion
     if is_hand_completed?(hand) do
       Enum.reduce(hand.bids, %{}, fn {player, bid}, acc ->
         trick_won = Map.get(hand.tricks, player, 0)
 
         score =
           if trick_won > bid,
-            do: bid + (trick_won - bid) / 10,
-            else: -bid
+            do: {bid, trick_won - bid},
+            else: {-bid, 0}
 
         Map.put(acc, player, score)
       end)

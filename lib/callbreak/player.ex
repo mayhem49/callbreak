@@ -80,8 +80,10 @@ defmodule Callbreak.Player do
     do: {:noreply, %{state | bids: Map.put(state.bids, player, bid)}}
 
   @impl true
-  def handle_cast({:invalid_bid, bid}, state),
-    do: GenServer.cast(self(), {:bid})
+  def handle_cast({:invalid_bid, _bid}, state) do
+    GenServer.cast(self(), {:bid})
+    {:noreply, state}
+  end
 
   @impl true
   def handle_cast({:trick_winner, winner}, state),
@@ -93,13 +95,13 @@ defmodule Callbreak.Player do
   def handle_cast({:winner, _winner}, state), do: {:noreply, state}
 
   @impl true
-  def handle_cast({:winner, _winner}, state), do: {:noreply, state}
-
-  @impl true
   def handle_cast({:game_completed}, state), do: {:noreply, state}
 
   @impl true
-  def handle_cast({:scorecard, scorecard}, state) do
+  def handle_cast({:scorecard, scorecard, points}, state) do
+    IO.inspect([scorecard | state.scorecard], label: "scorecard")
+    IO.inspect(points, label: "points")
+    IO.puts("")
     {:noreply, %{state | scorecard: [scorecard | state.scorecard]}}
   end
 
@@ -242,7 +244,7 @@ defmodule Callbreak.Player do
 
     state.current_trick
     |> Enum.reverse()
-    |> Enum.each(fn {player, card} ->
+    |> Enum.each(fn {_player, card} ->
       card
       |> Deck.card_to_string()
       |> IO.write()
