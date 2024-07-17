@@ -16,7 +16,7 @@ defmodule Callbreak.Hand do
     :current_trick,
     # bidding done by the players
     :bids,
-    # bidding or playing or dealing
+    # dealing -> bidding -> playing 
     :hand_state
   ]
 
@@ -85,8 +85,9 @@ defmodule Callbreak.Hand do
   index -> index of card in player's card
   else: {:error, reason}
 
-  todo: see rules about restriction in playing spade if player donot have card of current suit
-  todo: restrict playing smaller cards if bigger cards available
+  todo: 
+  see rules about restriction in playing spade if player donot have card of current suit
+  restrict playing smaller cards if bigger cards available
   """
   defp validate_card_play(hand, player, play_card) do
     card_index =
@@ -156,9 +157,8 @@ defmodule Callbreak.Hand do
     end
   end
 
-  # todo: better logic for state change and data structure for player state
   def is_bidding_completed?(hand) do
-    hand.hand_state != :bidding and Enum.count(hand.bids) == 4
+    hand.hand_state == :playing
   end
 
   def is_hand_completed?(hand) do

@@ -54,7 +54,6 @@ defmodule Callbreak.Player do
              end)
        }}
 
-  # todo: remove from state.cards
   @impl true
   def handle_cast({:play, :self, card}, state),
     do:

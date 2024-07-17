@@ -97,7 +97,7 @@ defmodule Callbreak.Deck do
     string = String.trim(string)
 
     with {:ok, rank, rest} <- parse_rank(string),
-         {:ok, suit} <- parse_suit(rest) do
+         {:ok, suit} <- parse_suit(String.trim(rest)) do
       {:ok, {rank, suit}}
     else
       :error -> {:error, "Invalid Card: #{string}"}

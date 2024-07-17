@@ -17,8 +17,12 @@ defmodule DeckTest do
       {"7d", {7, :diamond}},
       {"8h", {8, :heart}},
       {"9d", {9, :diamond}},
-      {"10h", {10, :heart}}
-      # todo add spaces between and extreme of string
+      {"10h", {10, :heart}},
+      {"  10h", {10, :heart}},
+      {"10h  ", {10, :heart}},
+      {"  10h  ", {10, :heart}},
+      {"  10 h  ", {10, :heart}},
+      {"  10   h  ", {10, :heart}}
     ]
 
     Enum.each(tests, fn {string, card} ->
