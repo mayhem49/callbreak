@@ -94,40 +94,37 @@ defmodule Callbreak.Deck do
   end
 
   def parse_card(string) do
-    [rank, suit] =
-      string
-      |> String.trim()
-      |> String.split("", trim: true)
+    string = String.trim(string)
 
-    with {:ok, rank} <- parse_rank(rank),
-         {:ok, suit} <- parse_suit(suit) do
+    with {:ok, rank, rest} <- parse_rank(string),
+         {:ok, suit} <- parse_suit(rest) do
       {:ok, {rank, suit}}
     else
-      error -> error
+      error -> {:error, "Invalid Card: #{string}"}
     end
   end
 
   def parse_rank(rank) do
     case rank do
-      "a" ->
-        {:ok, :ace}
+      "a" <> rest ->
+        {:ok, :ace, rest}
 
-      "k" ->
-        {:ok, :king}
+      "k" <> rest ->
+        {:ok, :king, rest}
 
-      "q" ->
-        {:ok, :queen}
+      "q" <> rest ->
+        {:ok, :queen, rest}
 
-      "j" ->
-        {:ok, :jack}
+      "j" <> rest ->
+        {:ok, :jack, rest}
 
-      num ->
-        case Integer.parse(num) do
-          {num, ""} when num >= 2 and num <= 10 ->
-            {:ok, num}
+      rank ->
+        case Integer.parse(rank) do
+          {num, rest} when num >= 1 and num <= 10 ->
+            {:ok, num, rest}
 
-          _ ->
-            {:error, "Invalid rank: #{num}"}
+          :error ->
+            :error
         end
     end
   end
@@ -138,7 +135,7 @@ defmodule Callbreak.Deck do
       "s" -> {:ok, :spade}
       "c" -> {:ok, :club}
       "d" -> {:ok, :diamond}
-      _ -> {:error, "invalid suti: #{suit}"}
+      _ -> :error
     end
   end
 
