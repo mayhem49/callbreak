@@ -2,7 +2,7 @@ defmodule Callbreak.Player do
   use GenServer
 
   @trump_suit :spade
-  alias Callbreak.{GameServer, Deck}
+  alias Callbreak.{GameServer, Card}
 
   def child_spec({_, player_id, _} = arg) do
     %{
@@ -50,7 +50,7 @@ defmodule Callbreak.Player do
              cards
              |> Enum.group_by(fn {_, suit} -> suit end)
              |> Enum.flat_map(fn {_suit, card} ->
-               Enum.sort(card, {:desc, Deck})
+               Enum.sort(card, {:desc, Card})
              end)
        }}
 
@@ -78,7 +78,7 @@ defmodule Callbreak.Player do
 
   # these error shouldn't occur [just in case]
   @impl true
-  def handle_cast({error, card} = message, state)
+  def handle_cast({error, _card} = message, state)
       when error in [:invalid_play_card, :non_existent_card] do
     if state.player_type == :interactive,
       do: IO.inspect(message, label: "error")
@@ -190,7 +190,7 @@ defmodule Callbreak.Player do
 
     input = IO.gets(prompt)
 
-    case Deck.parse_card(input) do
+    case Card.parse_card(input) do
       {:ok, card} ->
         card
 
@@ -240,15 +240,15 @@ defmodule Callbreak.Player do
     # IO.inspect {grouped_cards, curr_suit} , label: :botplay
     case Map.fetch(grouped_cards, curr_suit) do
       {:ok, suit_cards} ->
-        Enum.max_by(suit_cards, &Deck.rank_to_value/1)
+        Enum.max_by(suit_cards, &Card.rank_to_value/1)
 
       :error ->
         case Map.fetch(grouped_cards, @trump_suit) do
           {:ok, trump_cards} ->
-            Enum.min_by(trump_cards, &Deck.rank_to_value/1)
+            Enum.min_by(trump_cards, &Card.rank_to_value/1)
 
           :error ->
-            Enum.min_by(state.cards, &Deck.rank_to_value/1)
+            Enum.min_by(state.cards, &Card.rank_to_value/1)
             # todo: bot improvement
             # play whichever have more no of cards
             # also factor in the cards played
@@ -274,7 +274,7 @@ defmodule Callbreak.Player do
     |> Enum.reverse()
     |> Enum.each(fn {_player, card} ->
       card
-      |> Deck.card_to_string()
+      |> Card.card_to_string()
       |> IO.write()
 
       IO.write(" ")
@@ -288,7 +288,7 @@ defmodule Callbreak.Player do
 
     Enum.each(state.cards, fn card ->
       card
-      |> Deck.card_to_string()
+      |> Card.card_to_string()
       |> IO.write()
 
       IO.write(" ")

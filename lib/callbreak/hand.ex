@@ -1,5 +1,5 @@
 defmodule Callbreak.Hand do
-  alias Callbreak.Deck
+  alias Callbreak.{Deck, Card}
 
   @moduledoc """
   This module keeps track of the hand being played
@@ -75,20 +75,18 @@ defmodule Callbreak.Hand do
 
   def play(_, _, _), do: {:error, {:not_playing_currently}}
 
-  @doc """
-  checks if the `card` player wants to play is valid.
-  It is invalid in following case:
-  = Player donot have that card
-  = Played another suit card despite having card of current suit
+  # checks if the `card` player wants to play is valid.
+  # It is invalid in following case:
+  # = Player donot have that card
+  # = Played another suit card despite having card of current suit
 
-  If valid: {:ok, index}
-  index -> index of card in player's card
-  else: {:error, reason}
+  # If valid: {:ok, index}
+  # index -> index of card in player's card
+  # else: {:error, reason}
 
-  todo: 
-  see rules about restriction in playing spade if player donot have card of current suit
-  restrict playing smaller cards if bigger cards available
-  """
+  # todo: 
+  # see rules about restriction in playing spade if player donot have card of current suit
+  # restrict playing smaller cards if bigger cards available
   defp validate_card_play(hand, player, play_card) do
     card_index =
       hand.cards
@@ -97,7 +95,7 @@ defmodule Callbreak.Hand do
 
     if card_index do
       curr_suit = current_suit(hand)
-      {play_rank, play_suit} = play_card
+      {_play_rank, play_suit} = play_card
 
       if !curr_suit || play_suit == curr_suit ||
            !contains_card_of_same_suit?(hand, player, curr_suit) do
@@ -110,9 +108,7 @@ defmodule Callbreak.Hand do
     end
   end
 
-  @doc """
-  returns the current suit if exists
-  """
+  # returns the current suit if exists
   defp current_suit(hand) do
     case List.last(hand.current_trick) do
       nil -> nil
@@ -120,9 +116,7 @@ defmodule Callbreak.Hand do
     end
   end
 
-  @doc """
-  returns if the player contains card of `suit` suit
-  """
+  # returns if the player contains card of `suit` suit
   defp contains_card_of_same_suit?(hand, player, suit) do
     hand.cards
     |> Map.get(player)
@@ -138,8 +132,8 @@ defmodule Callbreak.Hand do
         hand.current_trick
         |> Enum.reverse()
         |> Enum.reduce(fn
-          {_, {curr_rank, suit}} = current, {_, {winner_rank, suit}} = winner ->
-            if Deck.rank_gt?(curr_rank, winner_rank),
+          {_, {_, suit} = curr_card} = current, {_, {_, suit} = winner_card} = winner ->
+            if Card.compare_same(curr_card, winner_card) == :gt,
               do: current,
               else: winner
 
