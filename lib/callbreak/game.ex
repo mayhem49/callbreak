@@ -49,7 +49,7 @@ defmodule Callbreak.Game do
       {:ok, hand} ->
         game
         |> Map.put(:current_hand, hand)
-        |> notify_player(player, {:bid_success, bid})
+        |> notify_player(player, {:bid, :self, bid})
         |> notify_except(player, {:bid, player, bid})
         |> rotate_current_player()
         |> then(fn game ->
@@ -78,7 +78,7 @@ defmodule Callbreak.Game do
       {:ok, hand, winner} ->
         game
         |> Map.put(:current_hand, hand)
-        |> notify_player(player, {:play_success, play_card})
+        |> notify_player(player, {:play, :self, play_card})
         |> notify_except(player, {:play, player, play_card})
         |> handle_trick_completion(winner)
         |> return_instructions_and_game()

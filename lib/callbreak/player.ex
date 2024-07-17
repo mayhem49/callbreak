@@ -54,10 +54,9 @@ defmodule Callbreak.Player do
              end)
        }}
 
-  # maybe merge play_success and play?
   # todo: remove from state.cards
   @impl true
-  def handle_cast({:play_success, card}, state),
+  def handle_cast({:play, :self, card}, state),
     do:
       {:noreply,
        %{
@@ -70,9 +69,8 @@ defmodule Callbreak.Player do
   def handle_cast({:play, player, card}, state),
     do: {:noreply, %{state | current_trick: [{player, card} | state.current_trick]}}
 
-  # maybe merge bid_success and bid?
   @impl true
-  def handle_cast({:bid_success, bid}, state),
+  def handle_cast({:bid, :self, bid}, state),
     do: {:noreply, %{state | bids: Map.put(state.bids, state.player_id, bid)}}
 
   @impl true
