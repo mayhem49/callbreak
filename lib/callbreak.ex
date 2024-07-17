@@ -7,18 +7,32 @@ defmodule Callbreak do
   def start(_start_type, _start_args) do
     game_id = :my_callbreak
     # game_id = :only_one_game_currently 
-    children = [
-      {Registry, keys: :unique, name: Callbreak.Registry},
-      {Callbreak.Player, {game_id, :p1, :bot}},
-      {Callbreak.Player, {game_id, :p2, :bot}},
-      {Callbreak.Player, {game_id, :p3, :bot}},
-      {Callbreak.Player, {game_id, :p4, :bot}},
-      {Callbreak.GameServer, {game_id, [:p1, :p2, :p3, :p4]}}
-    ]
+    #    children = [
+    #      {Callbreak.Player, {game_id, :p1, :bot}},
+    #      {Callbreak.Player, {game_id, :p2, :bot}},
+    #      {Callbreak.Player, {game_id, :p3, :bot}},
+    #      {Callbreak.Player, {game_id, :p4, :bot}},
+    #      {Callbreak.GameServer, {game_id, [:p1, :p2, :p3, :p4]}}
+    #    ]
 
     # one for all currently
     # todo separate supervisor for players
+    game_id = :my_callbreak
+    players = [{:p1, :bot}, {:p2, :bot}, {:p3, :bot}, {:p4, :bot}]
+
+    children = [
+      {Registry, keys: :unique, name: Callbreak.Registry},
+      {Callbreak.GameSupervisor, {game_id, players}}
+    ]
+
     Supervisor.start_link(children, strategy: :one_for_all)
+  end
+
+  def observe() do
+    Mix.ensure_application!(:wx)
+    Mix.ensure_application!(:runtime_tools)
+    Mix.ensure_application!(:observer)
+    :observer.start()
   end
 
   def service_name(service_id) do
