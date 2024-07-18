@@ -1,5 +1,5 @@
 defmodule Callbreak.Card do
-  @module_doc """
+  @moduledoc """
   contains utility functions related to Card.
   There is no data type currently.
   Just use {rank, suit} for card since I have written code like that in all places.

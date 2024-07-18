@@ -17,20 +17,18 @@ defmodule Callbreak.Game do
     :instructions
   ]
 
-  def new({game_id, [_, _, _, _] = players}) do
+  def new({game_id, player_id}) do
     game = %__MODULE__{
       game_id: game_id,
-      players: players,
+      players: [player_id],
       current_hand: nil,
-      dealer: Enum.random(players),
+      dealer: nil,
       current_player: nil,
       scorecard: [],
       instructions: []
     }
 
     game
-    |> notify_opponents_to_all()
-    |> new_hand()
     |> return_instructions_and_game()
   end
 
@@ -45,6 +43,24 @@ defmodule Callbreak.Game do
     |> deal()
     |> ask_current_player_to_bid()
   end
+
+  def join_game(%{players: players} = game, new_player) when length(players) < 4 do
+    # todo maintain integrity of  cyclic ordering of players
+    %{game | players: [new_player | players]}
+    |> notify_player(new_player, {:opponents, players})
+    |> notify_except(new_player, {:new_player, new_player})
+    |> maybe_start_game()
+    |> return_instructions_and_game()
+  end
+
+  defp maybe_start_game(%{players: players} = game) when length(players) == 4 do
+    IO.inspect("starting game")
+    game |> choose_dealer() |> new_hand()
+  end
+
+  defp maybe_start_game(game), do: game
+
+  defp choose_dealer(game), do: %{game | dealer: Enum.random(game.players)}
 
   def handle_bid(%{current_player: player} = game, player, bid) do
     case Hand.take_bid(game.current_hand, player, bid) do
@@ -186,13 +202,6 @@ defmodule Callbreak.Game do
 
   def ask_current_player_to_bid(%__MODULE__{} = game) do
     notify_current_player(game, {:bid})
-  end
-
-  defp notify_opponents_to_all(game) do
-    Enum.reduce(game.players, game, fn player, game ->
-      opponents = List.delete(game.players, player)
-      notify_player(game, player, {:opponents, opponents})
-    end)
   end
 
   defp notify_dealer_to_all(game) do

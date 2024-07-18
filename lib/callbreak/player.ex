@@ -4,27 +4,31 @@ defmodule Callbreak.Player do
   @trump_suit :spade
   alias Callbreak.{GameServer, Card}
 
-  def child_spec({_, player_id, _} = arg) do
+  def child_spec({player_id, _} = arg) do
     %{
       id: player_id,
       start: {__MODULE__, :start_link, [arg]}
     }
   end
 
-  def start_link({game_id, player_id, _} = arg) do
-    IO.puts("starting_player: #{game_id}-#{player_id}")
-    GenServer.start_link(__MODULE__, arg, name: Callbreak.service_name(player_id))
+  def start_link({player_id, _} = arg) do
+    IO.puts("starting_player:#{player_id}")
+    GenServer.start_link(__MODULE__, arg, name: Callbreak.via_tuple(player_id))
   end
 
   def notify(player_id, instruction) do
-    GenServer.cast(Callbreak.service_name(player_id), instruction)
+    GenServer.cast(Callbreak.via_tuple(player_id), instruction)
+  end
+
+  def join_game(player_id, game_id) do
+    GenServer.call(Callbreak.via_tuple(player_id), {:join_game, game_id})
   end
 
   @impl true
-  def init({game_id, player_id, player_type}) do
+  def init({player_id, player_type}) do
     {:ok,
      %{
-       game_id: game_id,
+       game_id: nil,
        player_id: player_id,
        player_type: player_type,
        opponents: [],
@@ -38,21 +42,15 @@ defmodule Callbreak.Player do
   end
 
   @impl true
+  def handle_call({:join_game, game_id}, _from, state),
+    do: {:reply, :ok, %{state | game_id: game_id}}
+
+  @impl true
   def handle_cast({:dealer, dealer}, state), do: {:noreply, %{state | dealer: dealer}}
 
   @impl true
   def handle_cast({:cards, cards}, state),
-    do:
-      {:noreply,
-       %{
-         state
-         | cards:
-             cards
-             |> Enum.group_by(fn {_, suit} -> suit end)
-             |> Enum.flat_map(fn {_suit, card} ->
-               Enum.sort(card, {:desc, Card})
-             end)
-       }}
+    do: {:noreply, %{state | cards: arrange_cards(cards)}}
 
   @impl true
   def handle_cast({:play, :self, card}, state),
@@ -125,16 +123,15 @@ defmodule Callbreak.Player do
   end
 
   @impl true
-  def handle_cast({:scorecard, scorecard, _points}, state) do
+  def handle_cast({:scorecard, scorecard, points}, state) do
     # IO.inspect([scorecard | state.scorecard], label: "scorecard")
-    # IO.inspect(points, label: "points")
-    # IO.puts("")
+    IO.inspect(points, label: "points")
+    IO.puts("")
     {:noreply, %{state | scorecard: [scorecard | state.scorecard]}}
   end
 
   @impl true
   def handle_cast({:bid}, state) do
-    # print_message(state, "opponents", opponents)
     bid =
       case state.player_type do
         :interactive ->
@@ -152,7 +149,6 @@ defmodule Callbreak.Player do
 
   @impl true
   def handle_cast({:play}, state) do
-    # print_message(state, "opponents", opponents)
     play_card =
       case state.player_type do
         :interactive ->
@@ -171,11 +167,14 @@ defmodule Callbreak.Player do
 
   @impl true
   def handle_cast({:opponents, opponents}, state) do
-    # print_message(state, "opponents", opponents)
-    %{state | opponents: opponents}
+    %{state | opponents: [opponents | state.opponents]}
 
     {:noreply, state}
   end
+
+  @impl true
+  def handle_cast({:new_player, new_player}, state),
+    do: {:noreply, %{state | opponents: [new_player | state.opponents]}}
 
   def read_play_card(state) do
     print_cards(state)
@@ -256,17 +255,6 @@ defmodule Callbreak.Player do
     end
   end
 
-  defp print_message(%{player_type: :interactive} = state, message),
-    do: IO.puts("#{state.player_id}: #{message}")
-
-  defp print_message(_, _), do: nil
-
-  defp print_message(%{player_type: :interactive} = state, label, value) do
-    print_message(state, "#{label}: #{value}")
-  end
-
-  defp print_message(_, _, _), do: nil
-
   defp print_tricks(state) do
     IO.puts("current round:")
 
@@ -295,5 +283,13 @@ defmodule Callbreak.Player do
     end)
 
     IO.puts("")
+  end
+
+  defp arrange_cards(cards) do
+    cards
+    |> Enum.group_by(fn {_, suit} -> suit end)
+    |> Enum.flat_map(fn {_suit, card} ->
+      Enum.sort(card, {:desc, Card})
+    end)
   end
 end
