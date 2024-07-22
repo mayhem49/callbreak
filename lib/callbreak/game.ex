@@ -1,8 +1,19 @@
 defmodule Callbreak.Game do
-  alias Callbreak.Hand
+  @moduledoc """
+  The game is in one of four possible state. 
+  - waiting
+  - bidding
+  - playing
+  - completed
 
-  # defstruct [ # list of all players :players, player whose turn is it to play :current_player, each 4 sequence of cards played is one hand :current_hand, total 5 rounds but round that is being played currently :current_round, points scored in previous round :scorecard, :hand_count, current :round_count, instructions to be sent to players :instructions ]
+  After the waiting stage is completed, {:game_start, opponents} message is sent to players
+  and bidding is started.
 
+  Bidding and playing process are repeated five times.
+
+  At the start of new hand, players are notified via {:cards, dealer, current_player, cards} message
+  After the bidding stage is completed, :play_start, not to be confused with :game_start message is sent to each player.
+  """
   defstruct [
     :game_id,
     :players,
@@ -17,10 +28,20 @@ defmodule Callbreak.Game do
     :instructions
   ]
 
-  def new({game_id, player_id}) do
+  # todo don't allow same player to be joined twice
+  # todo send match_start message with opponents ordering
+
+  # joining
+  # playiing
+  # end
+
+  require Logger
+  alias Callbreak.Hand
+
+  def new(game_id) do
     game = %__MODULE__{
       game_id: game_id,
-      players: [player_id],
+      players: [],
       current_hand: nil,
       dealer: nil,
       current_player: nil,
@@ -32,49 +53,74 @@ defmodule Callbreak.Game do
     |> return_instructions_and_game()
   end
 
-  defp new_hand(game) do
+  def join_game(%{players: players} = game, player_id)
+      when length(players) < 4 do
+    # todo maintain integrity of  cyclic ordering of players
+    %{game | players: [player_id | players]}
+    |> notify_player(player_id, {:opponents, players})
+    |> notify_except(player_id, {:new_player, player_id})
+    |> maybe_start_game()
+    |> return_instructions_and_game()
+  end
+
+  # starts game after joining process is completed
+  # also starts bidding process
+  defp maybe_start_game(%{players: players} = game) when length(players) == 4 do
+    game =
+      game.players
+      |> Enum.with_index()
+      |> Enum.reduce(game, fn {player, index}, game ->
+        # maybe call get_next_player?
+        opponents = %{
+          left: Integer.mod(index + 1, 4),
+          top: Integer.mod(index + 2, 4),
+          right: Integer.mod(index + 3, 4)
+        }
+
+        opponents =
+          opponents
+          |> Enum.map(fn {pos, index} -> {Enum.at(game.players, index), pos} end)
+          |> Enum.into(%{})
+
+        game
+        |> notify_player(player, {:game_start, opponents})
+      end)
+
+    # set dealer which will be shifted by one position in new_hand
+    game = %{game | dealer: Enum.random(game.players)}
+    start_new_hand(game)
+  end
+
+  defp maybe_start_game(game), do: game
+
+  defp start_new_hand(game) do
     # below code means:
     # randomly chose dealer in `new` will be shifted by one
     dealer = get_next_player(game, game.dealer)
     current_player = get_next_player(game, dealer)
 
     %{game | current_hand: Hand.new(), dealer: dealer, current_player: current_player}
-    |> notify_dealer_to_all()
     |> deal()
     |> ask_current_player_to_bid()
   end
 
-  def join_game(%{players: players} = game, new_player) when length(players) < 4 do
-    # todo maintain integrity of  cyclic ordering of players
-    %{game | players: [new_player | players]}
-    |> notify_player(new_player, {:opponents, players})
-    |> notify_except(new_player, {:new_player, new_player})
-    |> maybe_start_game()
-    |> return_instructions_and_game()
+  # also notifies the dealer using same message to notify cards
+  defp deal(game = %__MODULE__{}) do
+    {hand, cards} = Hand.deal(game.current_hand, game.players)
+
+    Enum.reduce(cards, %{game | current_hand: hand}, fn {player, cards}, acc_game ->
+      notify_player(acc_game, player, {:cards, game.dealer, game.current_player, cards})
+    end)
   end
-
-  defp maybe_start_game(%{players: players} = game) when length(players) == 4 do
-    IO.inspect("starting game")
-    game |> choose_dealer() |> new_hand()
-  end
-
-  defp maybe_start_game(game), do: game
-
-  defp choose_dealer(game), do: %{game | dealer: Enum.random(game.players)}
 
   def handle_bid(%{current_player: player} = game, player, bid) do
     case Hand.take_bid(game.current_hand, player, bid) do
       {:ok, hand} ->
         game
         |> Map.put(:current_hand, hand)
-        |> notify_player(player, {:bid, :self, bid})
-        |> notify_except(player, {:bid, player, bid})
+        |> notify_to_all({:bid, player, bid})
         |> rotate_current_player()
-        |> then(fn game ->
-          if Hand.is_bidding_completed?(hand),
-            do: ask_current_player_to_play(game),
-            else: ask_current_player_to_bid(game)
-        end)
+        |> maybe_start_play()
         |> return_instructions_and_game()
 
       {:error, err_msg} ->
@@ -91,13 +137,18 @@ defmodule Callbreak.Game do
     |> return_instructions_and_game()
   end
 
+  defp maybe_start_play(game) do
+    if Hand.is_bidding_completed?(game.current_hand),
+      do: game |> notify_to_all(:play_start) |> ask_current_player_to_play(),
+      else: ask_current_player_to_bid(game)
+  end
+
   def handle_play(%{current_player: player} = game, player, play_card) do
     case Hand.play(game.current_hand, player, play_card) do
       {:ok, hand, winner} ->
         game
         |> Map.put(:current_hand, hand)
-        |> notify_player(player, {:play, :self, play_card})
-        |> notify_except(player, {:play, player, play_card})
+        |> notify_to_all({:play, player, play_card})
         |> handle_trick_completion(winner)
         |> return_instructions_and_game()
 
@@ -153,7 +204,7 @@ defmodule Callbreak.Game do
       |> notify_to_all({:game_completed})
     else
       game
-      |> new_hand()
+      |> start_new_hand()
     end
   end
 
@@ -176,14 +227,6 @@ defmodule Callbreak.Game do
     {Enum.reverse(game.instructions), %{game | instructions: []}}
   end
 
-  def deal(game = %__MODULE__{}) do
-    {hand, cards} = Hand.deal(game.current_hand, game.players)
-
-    Enum.reduce(cards, %{game | current_hand: hand}, fn {player, cards}, acc_game ->
-      notify_player(acc_game, player, {:cards, cards})
-    end)
-  end
-
   defp rotate_current_player(game) do
     # how to remove function passed to find_index
     %{game | current_player: get_next_player(game, game.current_player)}
@@ -197,17 +240,11 @@ defmodule Callbreak.Game do
 
   # region: notification
   def ask_current_player_to_play(%__MODULE__{} = game) do
-    notify_current_player(game, {:play})
+    notify_current_player(game, :play)
   end
 
   def ask_current_player_to_bid(%__MODULE__{} = game) do
-    notify_current_player(game, {:bid})
-  end
-
-  defp notify_dealer_to_all(game) do
-    game
-    |> notify_player(game.dealer, {:dealer, :self})
-    |> notify_except(game.dealer, {:dealer, game.dealer})
+    notify_current_player(game, :bid)
   end
 
   defp notify_except(game, except_player, instruction) do
@@ -232,3 +269,14 @@ defmodule Callbreak.Game do
     %__MODULE__{game | instructions: [{:notify_player, player, instruction} | game.instructions]}
   end
 end
+
+# todo
+# decide whether to use call or cast for player actions?
+# manage player positions before sending {:cards, dealer, current_player, cards}
+# manage opponents posisiton in only one place
+
+# instructions
+# :bid
+# {;bid, player, bid}
+# {:dealer, dealer}
+# {:dealer, dealer, cards}

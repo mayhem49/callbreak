@@ -1,91 +1,151 @@
 defmodule Callbreak.Player do
-  use GenServer
+  alias Callbreak.{GameServer, Card, Application, Deck, Trick}
+  require Logger
+
+  # todo maybe store opponents position in liveview since that is only related to rendering?
+  defstruct [
+    :game_id,
+    :player_id,
+    :cards,
+    :current_trick,
+    :opponents,
+    :current_hand,
+    :scorecard
+  ]
 
   @trump_suit :spade
-  alias Callbreak.{GameServer, Card}
+  @player_id_len 5
 
-  def child_spec({player_id, _} = arg) do
-    %{
-      id: player_id,
-      start: {__MODULE__, :start_link, [arg]}
+  def new(player_id, game_id) do
+    %__MODULE__{
+      game_id: game_id,
+      player_id: player_id,
+      opponents: %{},
+      cards: [],
+      current_trick: Trick.new(),
+      current_hand: %{},
+      scorecard: []
     }
   end
 
-  def start_link({player_id, _} = arg) do
-    IO.puts("starting_player:#{player_id}")
-    GenServer.start_link(__MODULE__, arg, name: Callbreak.via_tuple(player_id))
+  def get_player_id_len(), do: @player_id_len
+  def get_trump_suit(), do: @trump_suit
+
+  def random_player_id() do
+    id =
+      Enum.map(1..@player_id_len, fn _ -> Enum.random(?a..?z) end)
+      |> List.to_string()
+
+    "player-" <> id
   end
 
-  def notify(player_id, instruction) do
-    GenServer.cast(Callbreak.via_tuple(player_id), instruction)
+  def notify_liveview(player_id, instruction) do
+    [{pid, _}] = Registry.lookup(Callbreak.Registry, player_id)
+    GenServer.cast(pid, instruction)
   end
 
-  def join_game(player_id, game_id) do
-    GenServer.call(Callbreak.via_tuple(player_id), {:join_game, game_id})
+  def register(player_id, player_pid) do
+    Application.register(player_id, player_pid)
   end
 
-  @impl true
-  def init({player_id, player_type}) do
-    {:ok,
-     %{
-       game_id: nil,
-       player_id: player_id,
-       player_type: player_type,
-       opponents: [],
-       dealer: nil,
-       cards: [],
-       current_trick: [],
-       bids: %{},
-       tricks: %{},
-       scorecard: []
-     }}
+  def get_opponent(player, position) when position in [:top, :left, :right, :bottom] do
+    Enum.find_value(
+      player.opponents,
+      fn
+        {opp, ^position} -> opp
+        _ -> nil
+      end
+    )
   end
 
-  @impl true
-  def handle_call({:join_game, game_id}, _from, state),
-    do: {:reply, :ok, %{state | game_id: game_id}}
+  def add_opponents(player, opponents) when is_list(opponents) do
+    opponents = Enum.zip(opponents, [:left, :top, :right])
+    %{player | opponents: Map.new(opponents)}
+  end
 
-  @impl true
-  def handle_cast({:dealer, dealer}, state), do: {:noreply, %{state | dealer: dealer}}
+  # todo rename
+  def set_opponents_final(player, opponents) do
+    # todo check game about how is opponents sent must be %{player: position} 
+    # or calculated by player
+    Logger.warning("opp final #{inspect(opponents)}")
+    %{player | opponents: opponents}
+  end
 
-  @impl true
-  def handle_cast({:cards, cards}, state),
-    do: {:noreply, %{state | cards: arrange_cards(cards)}}
+  def add_new_opponent(player, new_player) do
+    position = [:left, :top, :right]
+    count = Enum.count(player.opponents)
+    position = Enum.at(position, max(0, count - 1))
+    %{player | opponents: Map.put(player.opponents, position, new_player)}
+  end
 
-  @impl true
-  def handle_cast({:play, :self, card}, state),
-    do:
-      {:noreply,
-       %{
-         state
-         | cards: List.delete(state.cards, card),
-           current_trick: [{state.player_id, card} | state.current_trick]
-       }}
+  def set_cards(player, cards) do
+    %{player | cards: Deck.arrange_cards(cards)}
+  end
 
-  @impl true
-  def handle_cast({:play, player, card}, state),
-    do: {:noreply, %{state | current_trick: [{player, card} | state.current_trick]}}
+  def set_bid(player, bidder, bid) do
+    %{player | current_hand: Map.put(player.current_hand, bidder, {bid, 0})}
+  end
 
-  @impl true
-  def handle_cast({:bid, :self, bid}, state),
-    do: {:noreply, %{state | bids: Map.put(state.bids, state.player_id, bid)}}
+  def handle_trick_completion(player, trick_winner) do
+    current_hand =
+      Map.update!(player.current_hand, trick_winner, fn {bid, won} -> {bid, won + 1} end)
 
-  @impl true
-  def handle_cast({:bid, player, bid}, state),
-    do: {:noreply, %{state | bids: Map.put(state.bids, player, bid)}}
+    %{player | current_trick: Trick.new(), current_hand: current_hand}
+  end
+
+  def handle_self_play(state, card) do
+    %{
+      state
+      | cards: List.delete(state.cards, card),
+        current_trick: Trick.play(state.current_trick, state.player_id, card)
+    }
+  end
+
+  def handle_play(%{player_id: player} = state, player, card) do
+    handle_self_play(state, card)
+  end
+
+  def handle_play(state, player, card) do
+    %{
+      state
+      | current_trick: Trick.play(state.current_trick, player, card)
+    }
+  end
+
+  # rendering related
+  def current_score_to_string(player, target_player) do
+    case Map.get(player.current_hand, target_player) do
+      {bid, win} -> "#{win}/#{bid}"
+      nil -> ""
+    end
+  end
+
+  # returns an array with card and postion to iterate to 
+  def get_current_trick_cards(player) do
+    IO.inspect(player.current_trick.cards, label: :get_current_trick_cards)
+    IO.inspect(player.opponents, label: :get_current_trick_cards)
+
+    player.current_trick.cards
+    |> Enum.map(fn {card_player, card} ->
+      position = Map.get(player.opponents, card_player)
+      {position, card}
+    end)
+    |> IO.inspect(label: :get_current_trick_cards)
+  end
+
+  # old
+  # old
 
   # these error shouldn't occur [just in case]
-  @impl true
-  def handle_cast({error, _card} = message, state)
+  def handle_cast({error, _card} = _message, state)
       when error in [:invalid_play_card, :non_existent_card] do
-    if state.player_type == :interactive,
-      do: IO.inspect(message, label: "error")
+    # if state.player_type == :interactive,
+    # do: IO.inspect(message, label: "error")
 
     GenServer.cast(self(), {:play})
-    {:noreply, state}
+    state
   end
 
-  @impl true
   def handle_cast(message, state)
       when message in [
              {:invalid_play_card},
@@ -93,203 +153,52 @@ defmodule Callbreak.Player do
              {:not_playing_currently},
              {:not_bidding_currently}
            ] do
-    if state.player_type == :interactive,
-      do: IO.inspect("Error: #{message}")
+    # if state.player_type == :interactive,
+    # do: IO.inspect("Error: #{message}")
 
-    {:noreply, state}
+    state
   end
 
-  @impl true
   def handle_cast({:invalid_bid, _bid}, state) do
     GenServer.cast(self(), {:bid})
-    {:noreply, state}
+    state
   end
 
   # end of error
 
-  @impl true
-  def handle_cast({:trick_winner, winner}, state),
-    do:
-      {:noreply,
-       %{state | tricks: Map.update(state.tricks, winner, 1, &(&1 + 1)), current_trick: []}}
+  # def handle_cast({:trick_winner, winner}, state),
+  # do: %{state | tricks: Map.update(state.tricks, winner, 1, &(&1 + 1)), current_trick: []}
 
-  @impl true
-  def handle_cast({:winner, _winner}, state), do: {:noreply, state}
+  def handle_cast({:winner, _winner}, state), do: state
 
-  @impl true
   def handle_cast({:game_completed}, state) do
     IO.inspect(:game_completed)
-    {:noreply, state}
+    state
   end
 
-  @impl true
   def handle_cast({:scorecard, scorecard, points}, state) do
     # IO.inspect([scorecard | state.scorecard], label: "scorecard")
     IO.inspect(points, label: "points")
     IO.puts("")
-    {:noreply, %{state | scorecard: [scorecard | state.scorecard]}}
-  end
-
-  @impl true
-  def handle_cast({:bid}, state) do
-    bid =
-      case state.player_type do
-        :interactive ->
-          read_bid(state)
-
-        :bot ->
-          bot_bid(state)
-          # Board.minmax(state.board, state.symbol)
-      end
-
-    GameServer.bid(state.game_id, state.player_id, bid)
-
-    {:noreply, state}
-  end
-
-  @impl true
-  def handle_cast({:play}, state) do
-    play_card =
-      case state.player_type do
-        :interactive ->
-          state
-          |> read_play_card()
-          |> IO.inspect(label: "your card")
-
-        :bot ->
-          bot_play(state)
-          # Board.minmax(state.board, state.symbol)
-      end
-
-    GameServer.play(state.game_id, state.player_id, play_card)
-    {:noreply, state}
-  end
-
-  @impl true
-  def handle_cast({:opponents, opponents}, state) do
-    %{state | opponents: [opponents | state.opponents]}
-
-    {:noreply, state}
-  end
-
-  @impl true
-  def handle_cast({:new_player, new_player}, state),
-    do: {:noreply, %{state | opponents: [new_player | state.opponents]}}
-
-  def read_play_card(state) do
-    print_cards(state)
-
-    prompt =
-      if state.current_trick == [] do
-        "#{state.player_id} play_first_card(2h)"
-      else
-        print_tricks(state)
-        "#{state.player_id} play_card(2h): "
-      end
-
-    input = IO.gets(prompt)
-
-    case Card.parse_card(input) do
-      {:ok, card} ->
-        card
-
-      {:error, err_msg} ->
-        IO.inspect(err_msg)
-        read_play_card(state)
-    end
-  end
-
-  def read_bid(state) do
-    print_cards(state)
-
-    bid =
-      IO.gets("#{state.player_id} bet(1-13): ")
-      |> String.trim()
-      |> Integer.parse()
-
-    case bid do
-      {bid, ""} ->
-        bid
-
-      _ ->
-        IO.inspect("Invalid bid #{bid}")
-        read_bid(state)
-    end
-  end
-
-  def bot_bid(_state) do
-    # for now
-    3
-  end
-
-  @doc """
-  if first_play: play random
-
-  the bot plays as follows:
-  if there is card of existing suit: play  the maximum of that suit
-  else if there is card of trump_suit: play the minimum of trump suit
-  else: play the smallest of remaining two suits
-  """
-  def bot_play(%{current_trick: [], cards: cards}), do: Enum.random(cards)
-
-  def bot_play(state) do
-    {_, {_, curr_suit}} = List.last(state.current_trick)
-    grouped_cards = Enum.group_by(state.cards, fn {_, suit} -> suit end)
-
-    # IO.inspect {grouped_cards, curr_suit} , label: :botplay
-    case Map.fetch(grouped_cards, curr_suit) do
-      {:ok, suit_cards} ->
-        Enum.max_by(suit_cards, &Card.rank_to_value/1)
-
-      :error ->
-        case Map.fetch(grouped_cards, @trump_suit) do
-          {:ok, trump_cards} ->
-            Enum.min_by(trump_cards, &Card.rank_to_value/1)
-
-          :error ->
-            Enum.min_by(state.cards, &Card.rank_to_value/1)
-            # todo: bot improvement
-            # play whichever have more no of cards
-            # also factor in the cards played
-        end
-    end
-  end
-
-  defp print_tricks(state) do
-    IO.puts("current round:")
-
-    state.current_trick
-    |> Enum.reverse()
-    |> Enum.each(fn {_player, card} ->
-      card
-      |> Card.card_to_string()
-      |> IO.write()
-
-      IO.write(" ")
-    end)
-
-    IO.puts("")
-  end
-
-  defp print_cards(state) do
-    IO.inspect("your cards: ")
-
-    Enum.each(state.cards, fn card ->
-      card
-      |> Card.card_to_string()
-      |> IO.write()
-
-      IO.write(" ")
-    end)
-
-    IO.puts("")
-  end
-
-  defp arrange_cards(cards) do
-    cards
-    |> Enum.group_by(fn {_, suit} -> suit end)
-    |> Enum.flat_map(fn {_suit, card} ->
-      Enum.sort(card, {:desc, Card})
-    end)
+    %{state | scorecard: [scorecard | state.scorecard]}
   end
 end
+
+#    <div class="card-play right"  :if={@current_card}>
+#    <span><%=Callbreak.Card.card_to_string(@current_card) %></span>
+#    <span><%=Callbreak.Card.card_to_string(@current_card) %></span>
+#    </div>
+#
+#    <div class="card-play left"  :if={@current_card}>
+#    <span><%=Callbreak.Card.card_to_string(@current_card) %></span>
+#    <span><%=Callbreak.Card.card_to_string(@current_card) %></span>
+#    </div>
+#    <div class="card-play top"  :if={@current_card}>
+#    <span><%=Callbreak.Card.card_to_string(@current_card) %></span>
+#    <span><%=Callbreak.Card.card_to_string(@current_card) %></span>
+#    </div>
+#    <div class="card-play bottom"  :if={@current_card}>
+#    <span><%=Callbreak.Card.card_to_string(@current_card) %></span>
+#    <span><%=Callbreak.Card.card_to_string(@current_card) %></span>
+#    </div>
+#

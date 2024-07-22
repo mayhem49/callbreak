@@ -13,8 +13,8 @@ defmodule Callbreak.GameTracker do
     GenServer.start_link(__MODULE__, init_arg, name: Callbreak.GameTracker)
   end
 
-  def create_or_join_game(player_id),
-    do: GenServer.call(__MODULE__, {:create_or_join_game, player_id})
+  def create_or_get_game(),
+    do: GenServer.call(__MODULE__, :create_or_get_game)
 
   # callbacks
   @impl true
@@ -23,9 +23,8 @@ defmodule Callbreak.GameTracker do
   end
 
   @impl true
-  def handle_call({:create_or_join_game, player_id}, _from, state) do
-    game_id = create_or_get_game(state, player_id)
-    Player.join_game(player_id, game_id)
+  def handle_call(:create_or_get_game, _from, state) do
+    game_id = create_or_get_game(state)
 
     state =
       if state.count == 3,
@@ -35,22 +34,24 @@ defmodule Callbreak.GameTracker do
     {:reply, {:ok, game_id}, state}
   end
 
-  defp create_or_get_game(%{game_id: nil}, player_id) do
+  # todo maybe start_game with game_id only
+  # and after that join game?
+  defp create_or_get_game(%{game_id: nil}) do
     game_id = random_game_id()
-    # todo maybe start_game with game_id only
-    # and after that join game?
-    {:ok, _pid} = GameDynamicSupervisor.start_game({game_id, player_id})
+    {:ok, _pid} = GameDynamicSupervisor.start_game(game_id)
     game_id
   end
 
-  defp create_or_get_game(%{game_id: game_id}, player_id) do
-    :ok = GameServer.join_game(game_id, player_id)
+  defp create_or_get_game(%{game_id: game_id}) do
     game_id
   end
 
   def random_game_id() do
-    1..5
-    |> Enum.map(fn _ -> Enum.random(?a..?z) end)
-    |> List.to_string()
+    id =
+      1..5
+      |> Enum.map(fn _ -> Enum.random(?a..?z) end)
+      |> List.to_string()
+
+    "game-#{id}"
   end
 end

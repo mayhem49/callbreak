@@ -1,7 +1,7 @@
 defmodule GameTest do
   use ExUnit.Case
   alias Callbreak.{Game, Card, Deck}
-  # todos: test instructions also
+  # tods: test instructions also
   test "game is started correctly" do
     {_i, _g} = Game.new({:my_random_game, [:mp1, :mp2, :mp3, :mp4]})
   end

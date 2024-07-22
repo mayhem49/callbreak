@@ -10,6 +10,14 @@ defmodule Callbreak.Deck do
     |> Enum.shuffle()
   end
 
+  def get_random_cards() do
+    Enum.take_random(new(), 13)
+  end
+
+  def random() do
+    {Enum.random(@ranks), Enum.random(@suites)}
+  end
+
   def take([card | rest]), do: {:ok, card, rest}
 
   def take([]), do: {:error, :empty_deck}
@@ -20,5 +28,13 @@ defmodule Callbreak.Deck do
   """
   def distribute(deck, count) do
     Enum.chunk_every(deck, div(length(deck), count))
+  end
+
+  def arrange_cards(cards) do
+    cards
+    |> Enum.group_by(fn {_, suit} -> suit end)
+    |> Enum.flat_map(fn {_suit, card} ->
+      Enum.sort(card, {:desc, Callbreak.Card})
+    end)
   end
 end

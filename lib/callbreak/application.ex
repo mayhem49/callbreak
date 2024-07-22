@@ -8,6 +8,12 @@ defmodule Callbreak.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      # callbreak app
+      {Registry, keys: :unique, name: Callbreak.Registry},
+      Callbreak.PlayerSupervisor,
+      Callbreak.GameDynamicSupervisor,
+      Callbreak.GameTracker,
+      # callbreak app
       # Start the Telemetry supervisor
       CallbreakWeb.Telemetry,
       # Start the PubSub system
@@ -32,5 +38,44 @@ defmodule Callbreak.Application do
   def config_change(changed, _new, removed) do
     CallbreakWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  def observe() do
+    Mix.ensure_application!(:wx)
+    Mix.ensure_application!(:runtime_tools)
+    Mix.ensure_application!(:observer)
+    :observer.start()
+  end
+
+  def via_tuple(service_id) do
+    {:via, Registry, {Callbreak.Registry, service_id}}
+  end
+
+  def register(name, pid) do
+    Registry.register(Callbreak.Registry, name, pid)
+  end
+end
+
+defmodule Test do
+  alias Callbreak.Application
+
+  @name :server
+  def start_link() do
+    GenServer.start_link(__MODULE__, nil, name: Application.via_tuple(@name))
+  end
+
+  def print do
+    GenServer.call(Application.via_tuple(@name), :print)
+  end
+
+  @impl true
+  def init(nil) do
+    {:ok, nil}
+  end
+
+  @impl true
+  def handle_call(:print, _from, state) do
+    IO.inspect("print from genserver")
+    {:noreply, state}
   end
 end

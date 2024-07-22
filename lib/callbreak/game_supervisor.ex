@@ -10,8 +10,8 @@ defmodule Callbreak.GameDynamicSupervisor do
     DynamicSupervisor.start_link(__MODULE__, init_args, name: __MODULE__)
   end
 
-  def start_game({game_id, player_id}) when is_binary(game_id) do
-    child_spec = {Callbreak.GameServer, {game_id, player_id}}
+  def start_game(game_id) when is_binary(game_id) do
+    child_spec = {Callbreak.GameServer, game_id}
     DynamicSupervisor.start_child(__MODULE__, child_spec)
   end
 
@@ -44,6 +44,11 @@ defmodule Callbreak.PlayerSupervisor do
 
   def start_player(player) do
     child_spec = {Callbreak.Player, player}
+    DynamicSupervisor.start_child(__MODULE__, child_spec)
+  end
+
+  def start_bot({_, _} = args) do
+    child_spec = {Callbreak.Player.Bot, args}
     DynamicSupervisor.start_child(__MODULE__, child_spec)
   end
 end

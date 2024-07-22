@@ -1,5 +1,5 @@
 defmodule CallbreakWeb.Layouts do
   use CallbreakWeb, :html
 
-  embed_templates "layouts/*"
+  embed_templates("layouts/*")
 end
