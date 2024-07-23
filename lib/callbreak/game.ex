@@ -29,7 +29,6 @@ defmodule Callbreak.Game do
   ]
 
   # todo don't allow same player to be joined twice
-  # todo send match_start message with opponents ordering
 
   # joining
   # playiing
@@ -55,7 +54,6 @@ defmodule Callbreak.Game do
 
   def join_game(%{players: players} = game, player_id)
       when length(players) < 4 do
-    # todo maintain integrity of  cyclic ordering of players
     %{game | players: [player_id | players]}
     |> notify_player(player_id, {:opponents, players})
     |> notify_except(player_id, {:new_player, player_id})
@@ -278,7 +276,7 @@ end
 
 # todo
 # decide whether to use call or cast for player actions?
-# manage player positions before sending {:cards, dealer,  cards}
+# manage leaving of players between game
 # manage opponents posisiton in only one place
 
 # instructions

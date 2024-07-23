@@ -229,6 +229,15 @@ defmodule CallbreakWeb.LobbyLive do
       assigns
       |> assign(current_trick: Player.get_current_trick_cards(assigns.state))
 
+    IO.puts("")
+    IO.puts("")
+    IO.inspect(assigns.current_state == :play)
+    IO.inspect(assigns.current_player == assigns.state.player_id)
+
+    IO.inspect(
+      assigns.current_state == :play and assigns.current_player == assigns.state.player_id
+    )
+
     ~H"""
     <div class="board-container  top">
 
@@ -244,7 +253,7 @@ defmodule CallbreakWeb.LobbyLive do
     </div>
     <% end %>
 
-    <section class="bidding" :if={@current_state == :bidding}>
+    <section class="bidding" :if={@current_state == :bidding and @current_player == @state.player_id}>
     <%= for v <- 1..13 do%>
     <span phx-click="bid" phx-value-bid={v}> <%= v %></span>
     <% end %>
@@ -252,7 +261,13 @@ defmodule CallbreakWeb.LobbyLive do
 
     <%= player(assigns, @state.player_id, :bottom) %>
 
-    <div id="cards-container" class="card_area  card_area-bottom">
+    <div 
+    id="cards-container"
+    class={"card_area  card_area-bottom " <> 
+    if @current_state == :playing and @current_player == @state.player_id, do: "",
+    else: "opacity-50 pointer-events-none"
+    }
+    >
 
     <%= for {card, index} <- Enum.with_index(@state.cards)  do%>
     <div class="self-card" phx-click="card_play" phx-value-card_index={index}> 

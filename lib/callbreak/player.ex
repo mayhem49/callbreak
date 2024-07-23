@@ -55,8 +55,6 @@ defmodule Callbreak.Player do
 
   # todo rename
   def set_opponents_final(player, opponents) do
-    # todo check game about how is opponents sent must be %{player: position} 
-    # or calculated by player
     Logger.warning("opp final #{inspect(opponents)}")
     %{player | opponents: opponents}
   end
