@@ -34,7 +34,7 @@ defmodule Callbreak.Player.Bot do
     {:noreply, Player.set_opponents_final(state, opponents)}
   end
 
-  def handle_cast({:cards, _dealer, _curr_player, cards} = msg, state) do
+  def handle_cast({:cards, _dealer, cards} = msg, state) do
     Logger.info("#{inspect(state.player_id)}  #{inspect(msg)}")
 
     {:noreply, Player.set_cards(state, cards)}

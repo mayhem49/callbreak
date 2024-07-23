@@ -11,7 +11,7 @@ defmodule Callbreak.Game do
 
   Bidding and playing process are repeated five times.
 
-  At the start of new hand, players are notified via {:cards, dealer, current_player, cards} message
+  At the start of new hand, players are notified via {:cards, dealer, cards} message
   After the bidding stage is completed, :play_start, not to be confused with :game_start message is sent to each player.
   """
   defstruct [
@@ -63,6 +63,12 @@ defmodule Callbreak.Game do
     |> return_instructions_and_game()
   end
 
+  def join_game(game, player_id) do
+    game
+    |> notify_player(player_id, :cannot_join_game)
+    |> return_instructions_and_game()
+  end
+
   # starts game after joining process is completed
   # also starts bidding process
   defp maybe_start_game(%{players: players} = game) when length(players) == 4 do
@@ -109,7 +115,7 @@ defmodule Callbreak.Game do
     {hand, cards} = Hand.deal(game.current_hand, game.players)
 
     Enum.reduce(cards, %{game | current_hand: hand}, fn {player, cards}, acc_game ->
-      notify_player(acc_game, player, {:cards, game.dealer, game.current_player, cards})
+      notify_player(acc_game, player, {:cards, game.dealer, cards})
     end)
   end
 
@@ -162,7 +168,7 @@ defmodule Callbreak.Game do
   # out of turn play
   def handle_play(game, player, _card) do
     game
-    |> notify_player(player, {:out_of_turn})
+    |> notify_player(player, :out_of_turn)
     |> return_instructions_and_game()
   end
 
@@ -272,7 +278,7 @@ end
 
 # todo
 # decide whether to use call or cast for player actions?
-# manage player positions before sending {:cards, dealer, current_player, cards}
+# manage player positions before sending {:cards, dealer,  cards}
 # manage opponents posisiton in only one place
 
 # instructions

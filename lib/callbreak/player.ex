@@ -48,16 +48,6 @@ defmodule Callbreak.Player do
     Application.register(player_id, player_pid)
   end
 
-  def get_opponent(player, position) when position in [:top, :left, :right, :bottom] do
-    Enum.find_value(
-      player.opponents,
-      fn
-        {opp, ^position} -> opp
-        _ -> nil
-      end
-    )
-  end
-
   def add_opponents(player, opponents) when is_list(opponents) do
     opponents = Enum.zip(opponents, [:left, :top, :right])
     %{player | opponents: Map.new(opponents)}
@@ -75,7 +65,7 @@ defmodule Callbreak.Player do
     position = [:left, :top, :right]
     count = Enum.count(player.opponents)
     position = Enum.at(position, max(0, count - 1))
-    %{player | opponents: Map.put(player.opponents, position, new_player)}
+    %{player | opponents: Map.put(player.opponents, new_player, position)}
   end
 
   def set_cards(player, cards) do
@@ -113,6 +103,41 @@ defmodule Callbreak.Player do
   end
 
   # rendering related
+  defp get_player_at_pos(player, :bottom) do
+    player.player_id
+  end
+
+  defp get_player_at_pos(player, pos) do
+    Enum.find_value(
+      player.opponents,
+      fn
+        {opp, ^pos} -> opp
+        _ -> false
+      end
+    )
+  end
+
+  def get_next_turn(%{player_id: current_player} = player, current_player) do
+    get_player_at_pos(player, :left)
+  end
+
+  def get_next_turn(player, current_player) do
+    curr_pos =
+      Enum.find_value(player.opponents, fn
+        {^current_player, pos} -> pos
+        _ -> false
+      end)
+
+    next_pos =
+      case curr_pos do
+        :left -> :top
+        :top -> :right
+        :right -> :bottom
+      end
+
+    get_player_at_pos(player, next_pos)
+  end
+
   def current_score_to_string(player, target_player) do
     case Map.get(player.current_hand, target_player) do
       {bid, win} -> "#{win}/#{bid}"
@@ -122,15 +147,17 @@ defmodule Callbreak.Player do
 
   # returns an array with card and postion to iterate to 
   def get_current_trick_cards(player) do
-    IO.inspect(player.current_trick.cards, label: :get_current_trick_cards)
-    IO.inspect(player.opponents, label: :get_current_trick_cards)
-
     player.current_trick.cards
-    |> Enum.map(fn {card_player, card} ->
-      position = Map.get(player.opponents, card_player)
-      {position, card}
+    |> IO.inspect()
+    |> IO.inspect()
+    |> Enum.map(fn
+      {card_player, card} ->
+        position = Map.get(player.opponents, card_player) || :bottom
+
+        {position, card}
     end)
-    |> IO.inspect(label: :get_current_trick_cards)
+    |> IO.inspect()
+    |> IO.inspect()
   end
 
   # old
@@ -140,7 +167,6 @@ defmodule Callbreak.Player do
   def handle_cast({error, _card} = _message, state)
       when error in [:invalid_play_card, :non_existent_card] do
     # if state.player_type == :interactive,
-    # do: IO.inspect(message, label: "error")
 
     GenServer.cast(self(), {:play})
     state

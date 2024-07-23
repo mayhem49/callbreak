@@ -13,13 +13,23 @@ defmodule Callbreak.GameTracker do
     GenServer.start_link(__MODULE__, init_arg, name: Callbreak.GameTracker)
   end
 
-  def create_or_get_game(),
-    do: GenServer.call(__MODULE__, :create_or_get_game)
+  def create_or_get_game() do
+    GenServer.call(__MODULE__, :create_or_get_game)
+  end
+
+  def renew_game() do
+    GenServer.call(__MODULE__, :renew_game)
+  end
 
   # callbacks
   @impl true
   def init([]) do
     {:ok, %{game_id: nil, count: 0}}
+  end
+
+  @impl true
+  def handle_call(:renew_game, _from, state) do
+    {:reply, :ok, %{state | game_id: nil, count: 0}}
   end
 
   @impl true
