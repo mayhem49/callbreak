@@ -12,7 +12,6 @@ defmodule CallbreakWeb.HomeLive do
   end
 
   def handle_event("join_game", params, socket) do
-    %{"username" => player_id} = params
     player_id = maybe_generate_player_id(params)
 
     {:ok, game_id} = GameTracker.create_or_get_game()
@@ -31,6 +30,7 @@ defmodule CallbreakWeb.HomeLive do
   def render(assigns) do
     ~H"""
     <div class="container">
+
     <h1>Welcome to Game Name</h1>
     <form phx-submit="join_game">
     <div class="input-group">

@@ -1,6 +1,5 @@
 defmodule Callbreak.Player do
   alias Callbreak.{GameServer, Card, Application, Deck, Trick}
-  require Logger
 
   # todo maybe store opponents position in liveview since that is only related to rendering?
   defstruct [
@@ -55,7 +54,6 @@ defmodule Callbreak.Player do
 
   # todo rename
   def set_opponents_final(player, opponents) do
-    Logger.warning("opp final #{inspect(opponents)}")
     %{player | opponents: opponents}
   end
 
@@ -78,7 +76,7 @@ defmodule Callbreak.Player do
     current_hand =
       Map.update!(player.current_hand, trick_winner, fn {bid, won} -> {bid, won + 1} end)
 
-    %{player | current_trick: Trick.new(), current_hand: current_hand}
+    %{player | current_hand: %{}, current_trick: Trick.new(), current_hand: current_hand}
   end
 
   def handle_self_play(state, card) do
@@ -98,6 +96,11 @@ defmodule Callbreak.Player do
       state
       | current_trick: Trick.play(state.current_trick, player, card)
     }
+  end
+
+  def handle_scorecard(player, scorecard, points) do
+    # points is the points of last completed hand
+    %{player | scorecard: [points | player.scorecard]}
   end
 
   # rendering related
@@ -146,16 +149,12 @@ defmodule Callbreak.Player do
   # returns an array with card and postion to iterate to 
   def get_current_trick_cards(player) do
     player.current_trick.cards
-    |> IO.inspect()
-    |> IO.inspect()
     |> Enum.map(fn
       {card_player, card} ->
         position = Map.get(player.opponents, card_player) || :bottom
 
         {position, card}
     end)
-    |> IO.inspect()
-    |> IO.inspect()
   end
 
   # old
@@ -202,8 +201,6 @@ defmodule Callbreak.Player do
 
   def handle_cast({:scorecard, scorecard, points}, state) do
     # IO.inspect([scorecard | state.scorecard], label: "scorecard")
-    IO.inspect(points, label: "points")
-    IO.puts("")
     %{state | scorecard: [scorecard | state.scorecard]}
   end
 end
