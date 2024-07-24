@@ -191,12 +191,14 @@ defmodule Callbreak.Game do
       nil ->
         ask_current_player_to_play(game)
 
-      scorecard ->
-        acc_scorecard = [scorecard | game.scorecard]
-        points = calculate_points(acc_scorecard)
+      hand_scorecard ->
+        acc_scorecard = [hand_scorecard | game.scorecard]
+
+        hand_score = calculate_points([hand_scorecard])
+        acc_score = calculate_points(acc_scorecard)
 
         %{game | scorecard: acc_scorecard}
-        |> notify_to_all({:scorecard, scorecard, points})
+        |> notify_to_all({:scorecard, hand_score, acc_score})
         |> handle_game_completion()
     end
   end

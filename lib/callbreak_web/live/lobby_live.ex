@@ -1,8 +1,11 @@
 defmodule CallbreakWeb.LobbyLive do
+  alias Callbreak.Card
+  alias Callbreak.Trick
   alias Callbreak.GameTracker
   alias Callbreak.PlayerSupervisor
   alias Callbreak.GameServer
   alias Callbreak.Player
+  alias Callbreak.Player.Render
   require Logger
 
   use CallbreakWeb, :live_view
@@ -144,12 +147,12 @@ defmodule CallbreakWeb.LobbyLive do
      |> assign(state: state)}
   end
 
-  def handle_cast({:scorecard, scorecard, points} = msg, socket) do
+  def handle_cast({:scorecard, hand_score, total_score} = msg, socket) do
     Logger.info("#{inspect(msg)}")
 
     {:noreply,
      socket
-     |> assign(state: Player.handle_scorecard(socket.assigns.state, scorecard, points))}
+     |> assign(state: Player.handle_scorecard(socket.assigns.state, hand_score, total_score))}
   end
 
   def handle_cast(msg, socket) do
@@ -235,7 +238,8 @@ defmodule CallbreakWeb.LobbyLive do
   def render(assigns) do
     assigns =
       assigns
-      |> assign(current_trick: Player.get_current_trick_cards(assigns.state))
+      |> assign(current_trick: Render.get_current_trick_cards(assigns.state))
+      |> assign(current_cards: Render.get_cards(assigns.state))
 
     ~H"""
     <div class="board-container  top">
@@ -254,7 +258,7 @@ defmodule CallbreakWeb.LobbyLive do
 
     <section class="bidding" :if={@current_state == :bidding and @current_player == @state.player_id}>
     <%= for v <- 1..13 do%>
-    <span phx-click="bid" phx-value-bid={v}> <%= v %></span>
+    <span class="bid" phx-click="bid" phx-value-bid={v}> <%= v %></span>
     <% end %>
     </section>
 
@@ -268,15 +272,37 @@ defmodule CallbreakWeb.LobbyLive do
     }
     >
 
-    <%= for {card, index} <- Enum.with_index(@state.cards)  do%>
-    <div class="self-card" phx-click="card_play" phx-value-card_index={index}> 
-    <%=Callbreak.Card.card_to_string(card) %>
-    </div>
+    <%= for card <- @current_cards do %>
+    <%= render_card(assigns,card) %>
     <% end %>
 
     </div>
 
     <%= scorecard_modal(assigns) %>
+    </div>
+    """
+  end
+
+  def render_card(assigns, {index, {_rank, suit} = card, can_play?}) do
+    card_class = [
+      "self-card",
+      !can_play? && "unplayable",
+      if(suit in [:spade, :club], do: "card-black", else: "card-red")
+    ]
+
+    assigns =
+      assigns
+      |> assign(card_class: card_class)
+      |> assign(index: index)
+      |> assign(card: card)
+
+    ~H"""
+    <div 
+    class={@card_class}
+    phx-click="card_play" 
+    phx-value-card_index={@index}
+    > 
+    <%= Card.card_to_string(@card)%>
     </div>
     """
   end
@@ -293,7 +319,7 @@ defmodule CallbreakWeb.LobbyLive do
     <div> <%= @target_player %>  </div>
     <div> position:  <%= @target_position %>  </div>
     <div>
-    <%= Player.current_score_to_string(@state, @target_player) %>
+    <%= Render.current_score_to_string(@state, @target_player) %>
     </div>
 
     <.loading :if={@current_player == @target_player} />
@@ -318,14 +344,19 @@ defmodule CallbreakWeb.LobbyLive do
   end
 
   def scorecard_modal(assigns) do
-    scorecard = assigns.state.scorecard
+    # todo make it better
+    hand_scores = assigns.state.hand_scores
 
-    scorecard =
-      if Enum.empty?(scorecard),
+    hand_scores =
+      if hand_scores && Enum.empty?(hand_scores),
         do: nil,
-        else: scorecard
+        else: hand_scores
 
-    assigns = assign(assigns, scorecard: scorecard)
+    IO.inspect(hand_scores, label: :hand_scores)
+    IO.inspect(hand_scores, label: :hand_scores)
+    IO.inspect(hand_scores, label: :hand_scores)
+    IO.inspect(hand_scores, label: :hand_scores)
+    assigns = assign(assigns, hand_scores: hand_scores)
 
     ~H"""
     <.button class="absolute" phx-click={
@@ -334,9 +365,9 @@ defmodule CallbreakWeb.LobbyLive do
     show modal
     </.button>
 
-    <.modal show id = "scorecard_modal" :if={@scorecard}> 
+    <.modal show id = "scorecard_modal" :if={@hand_scores}> 
 
-    <.table id="scorecard-table" rows={@scorecard} >
+    <.table id="hand_scores-table" rows={@hand_scores} >
 
     <:col :let={hand_score} label={@state.player_id}>
     <%= Map.get(hand_score,@state.player_id) %>

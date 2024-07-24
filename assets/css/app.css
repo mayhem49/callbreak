@@ -61,7 +61,7 @@
   grid-column: 2/7;
 }
 .card_area {
-  background-color: rgb(232, 127, 127);
+  /*background-color: rgb(232, 127, 127); */
 }
 
 .bidding{
@@ -71,7 +71,6 @@
   align-items: flex-end;
   padding-bottom: 10px;
   width: 100%;
-  background-color: green;
   justify-content: center;
   gap: 10px;
   cursor: pointer;
@@ -84,6 +83,9 @@
   margin: 2px;
   padding: 5px;
 }
+.bidding>span:hover{
+
+}
 .self-card {
   box-sizing: border-box;
   display: inline-block;
@@ -92,8 +94,6 @@
   height: 110%;
   transform: translateY(-9%);
   aspect-ratio: 2/3;
-  background-color: aqua;
-  border: 2px solid green;
 }
 divs.self-card:first-of-type{
   margin-left: 0;
@@ -101,17 +101,6 @@ divs.self-card:first-of-type{
 div.self-card:not(:first-of-type){
   margin-left: -2.89%;
 }
-.self-card:hover {
-  background-color: gray;
-}
-
-.self-card-odd {
-  background-color: gray;
-}
-.self-card-even {
-  background-color: darkkhaki;
-}
-
 .card_area-bottom {
   width: 100%;
 }
@@ -190,28 +179,27 @@ div.self-card:not(:first-of-type){
   transform: rotate(180deg);
 }
 
+.card-black{
+  color: black;
+}
+.card-red{
+  color: red
+}
 
-/* 
-.self-card {
-flex: 1;
-/ aspect-ratio: 63/88; /
-aspect-ratio: 1/1;
-text-align: center;
-/  /
-height: 110%;
-transform: translateY(-10%);
-/ margin-left: -10%; /
-/ flex-start: start; /
-min-width: 100px;
-max-width: auto;
+.self-card:hover{
+  background-color: rgb(225,225,225);
 }
-.self-card {
-display: flex;
-justify-content: center;
-align-items: center;
-} 
-.card_area-bottom {
-display: flex;
-justify-content: center;
+.self-card{
+  cursor: pointer;
+  background-color: rgb(245,245,245);
+
 }
- */
+
+.self-card.unplayable{
+  pointer-events: none;
+  background-color: rgb(200,200,200);
+}
+div.self-card:not(:first-child){
+  box-shadow: -6px 3px 6px -3px #616161, -6px 0px 6px -3px #616161;
+}
+

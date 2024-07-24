@@ -9,7 +9,10 @@ defmodule Callbreak.Player do
     :current_trick,
     :opponents,
     :current_hand,
-    :scorecard
+    # total scorecard of all hands played till now
+    :scorecard,
+    # stores score of each hand in a list
+    :hand_scores
   ]
 
   @trump_suit :spade
@@ -23,7 +26,8 @@ defmodule Callbreak.Player do
       cards: [],
       current_trick: Trick.new(),
       current_hand: %{},
-      scorecard: []
+      scorecard: nil,
+      hand_scores: []
     }
   end
 
@@ -98,24 +102,9 @@ defmodule Callbreak.Player do
     }
   end
 
-  def handle_scorecard(player, scorecard, points) do
+  def handle_scorecard(player, hand_score, scorecard) do
     # points is the points of last completed hand
-    %{player | scorecard: [points | player.scorecard]}
-  end
-
-  # rendering related
-  defp get_player_at_pos(player, :bottom) do
-    player.player_id
-  end
-
-  defp get_player_at_pos(player, pos) do
-    Enum.find_value(
-      player.opponents,
-      fn
-        {opp, ^pos} -> opp
-        _ -> false
-      end
-    )
+    %{player | hand_scores: [hand_score | player.hand_scores], scorecard: scorecard}
   end
 
   def get_next_turn(%{player_id: current_player} = player, current_player) do
@@ -139,6 +128,30 @@ defmodule Callbreak.Player do
     get_player_at_pos(player, next_pos)
   end
 
+  def get_player_at_pos(player, :bottom) do
+    player.player_id
+  end
+
+  def get_player_at_pos(player, pos) do
+    Enum.find_value(
+      player.opponents,
+      fn
+        {opp, ^pos} -> opp
+        _ -> false
+      end
+    )
+  end
+end
+
+defmodule Callbreak.Player.Render do
+  @moduledoc """
+  transform player data appropriate for rendering
+  """
+
+  alias Callbreak.Player
+  alias Callbreak.Trick
+  alias Callbreak.Card
+
   def current_score_to_string(player, target_player) do
     case Map.get(player.current_hand, target_player) do
       {bid, win} -> "#{win}/#{bid}"
@@ -157,69 +170,47 @@ defmodule Callbreak.Player do
     end)
   end
 
-  # old
-  # old
+  def get_cards(%Player{} = player) do
+    start_suit = Trick.start_suit(player.current_trick)
 
-  # these error shouldn't occur [just in case]
-  def handle_cast({error, _card} = _message, state)
-      when error in [:invalid_play_card, :non_existent_card] do
-    # if state.player_type == :interactive,
+    # can play any card if no card available for current suit
+    # todo must playt trump if no one else have
+    has_card_of_start_suit? =
+      start_suit != nil and
+        Enum.any?(
+          player.cards,
+          fn
+            {_rank, ^start_suit} -> true
+            _ -> false
+          end
+        )
 
-    GenServer.cast(self(), {:play})
-    state
+    player.cards
+    |> Enum.with_index()
+    |> Enum.map(fn {{_rank, suit} = card, index} ->
+      can_play? =
+        cond do
+          has_card_of_start_suit? and suit == start_suit -> true
+          has_card_of_start_suit? -> false
+          true -> true
+        end
+
+      {index, card, can_play?}
+    end)
   end
 
-  def handle_cast(message, state)
-      when message in [
-             {:invalid_play_card},
-             {:out_of_turn},
-             {:not_playing_currently},
-             {:not_bidding_currently}
-           ] do
-    # if state.player_type == :interactive,
-    # do: IO.inspect("Error: #{message}")
-
-    state
-  end
-
-  def handle_cast({:invalid_bid, _bid}, state) do
-    GenServer.cast(self(), {:bid})
-    state
-  end
-
-  # end of error
-
-  # def handle_cast({:trick_winner, winner}, state),
-  # do: %{state | tricks: Map.update(state.tricks, winner, 1, &(&1 + 1)), current_trick: []}
-
-  def handle_cast({:winner, _winner}, state), do: state
-
-  def handle_cast({:game_completed}, state) do
-    IO.inspect(:game_completed)
-    state
-  end
-
-  def handle_cast({:scorecard, scorecard, points}, state) do
-    # IO.inspect([scorecard | state.scorecard], label: "scorecard")
-    %{state | scorecard: [scorecard | state.scorecard]}
+  def get_scorecard(player) do
+    player.hand_scores
+    |> Enum.map(fn hand_score ->
+      [:left, :top, :right]
+      |> Enum.map(fn pos ->
+        opponent = Player.get_player_at_pos(player, pos)
+        {opponent, Map.get(hand_score, opponent)}
+      end)
+      |> then(fn scores ->
+        [Map.get(hand_score, player.player_id) | scores]
+      end)
+    end)
+    |> IO.inspect(lable: :render_scorecard)
   end
 end
-
-#    <div class="card-play right"  :if={@current_card}>
-#    <span><%=Callbreak.Card.card_to_string(@current_card) %></span>
-#    <span><%=Callbreak.Card.card_to_string(@current_card) %></span>
-#    </div>
-#
-#    <div class="card-play left"  :if={@current_card}>
-#    <span><%=Callbreak.Card.card_to_string(@current_card) %></span>
-#    <span><%=Callbreak.Card.card_to_string(@current_card) %></span>
-#    </div>
-#    <div class="card-play top"  :if={@current_card}>
-#    <span><%=Callbreak.Card.card_to_string(@current_card) %></span>
-#    <span><%=Callbreak.Card.card_to_string(@current_card) %></span>
-#    </div>
-#    <div class="card-play bottom"  :if={@current_card}>
-#    <span><%=Callbreak.Card.card_to_string(@current_card) %></span>
-#    <span><%=Callbreak.Card.card_to_string(@current_card) %></span>
-#    </div>
-#

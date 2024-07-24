@@ -49,8 +49,11 @@ function generate_random_string(length) {
     }
     return result;
 }
+
 window.addEventListener("lobby:generate_player_id", (e) =>{
-  console.log("test")
   const player_id = generate_random_string(e.detail.length)
   e.target.value = player_id
+})
+
+window.addEventListener("game:show_scorecard", (e) =>{
 })

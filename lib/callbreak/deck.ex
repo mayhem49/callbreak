@@ -1,11 +1,11 @@
 defmodule Callbreak.Deck do
-  @suites [:diamond, :heart, :club, :spade]
+  @suites [:spade, :heart, :club, :diamond]
   @ranks [:ace, 2, 3, 4, 5, 6, 7, 8, 9, 10, :jack, :queen, :king]
 
   def new() do
     @suites
-    |> Enum.flat_map(fn suite ->
-      Enum.map(@ranks, fn rank -> {rank, suite} end)
+    |> Enum.flat_map(fn suit ->
+      Enum.map(@ranks, fn rank -> {rank, suit} end)
     end)
     |> Enum.shuffle()
   end
@@ -30,11 +30,15 @@ defmodule Callbreak.Deck do
     Enum.chunk_every(deck, div(length(deck), count))
   end
 
+  # group in the order of @suites
   def arrange_cards(cards) do
-    cards
-    |> Enum.group_by(fn {_, suit} -> suit end)
-    |> Enum.flat_map(fn {_suit, card} ->
-      Enum.sort(card, {:desc, Callbreak.Card})
+    IO.inspect(cards)
+    grouped_cards = Enum.group_by(cards, fn {_, suit} -> suit end)
+
+    Enum.flat_map(@suites, fn suit ->
+      grouped_cards
+      |> Map.get(suit, [])
+      |> Enum.sort({:desc, Callbreak.Card})
     end)
   end
 end
