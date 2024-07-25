@@ -157,12 +157,29 @@ defmodule CallbreakWeb.LobbyLive do
      |> assign(state: Player.handle_scorecard(socket.assigns.state, hand_score, total_score))}
   end
 
+  def handle_cast({:winner, winner} = msg, socket) do
+    Logger.info("#{inspect(msg)}")
+
+    {:noreply,
+     socket
+     |> assign(current_state: :completed)
+     |> assign(show_scorecard: true)}
+  end
+
   def handle_cast(msg, socket) do
     Logger.warning(" UNHANDLED MESSAGE #{inspect(msg)}")
     {:noreply, socket}
   end
 
   # handle-event
+  def handle_event("navigate_home", params, socket) do
+    Logger.warning("navigate_home")
+
+    {:noreply,
+     socket
+     |> push_navigate(to: ~p"/live")}
+  end
+
   def handle_event("hide_scorecard", params, socket) do
     Logger.warning("hide_scorecard")
 
@@ -251,8 +268,11 @@ defmodule CallbreakWeb.LobbyLive do
   end
 
   def render(assigns) do
+    winner = if assigns.current_state == :completed, do: Player.get_winner(assigns.state)
+
     assigns =
       assigns
+      |> assign(winner: winner)
       |> assign(current_trick: Render.get_current_trick_cards(assigns.state))
       |> assign(current_cards: Render.get_cards(assigns.state))
 
@@ -298,6 +318,7 @@ defmodule CallbreakWeb.LobbyLive do
     scorecard={@state.scorecard}
     opponents={@state.opponents}
     player_id={@state.player_id}
+    winner = {@winner}
 
     :if={@show_scorecard} 
     />
@@ -372,7 +393,19 @@ defmodule CallbreakWeb.LobbyLive do
         do: nil,
         else: assigns.hand_scores
 
-    assigns = assign(assigns, hand_scores: hand_scores)
+    IO.inspect(assigns.winner, label: :winner)
+    IO.inspect(assigns.winner, label: :winner)
+    IO.inspect(assigns.winner, label: :winner)
+    IO.inspect(assigns.winner, label: :winner)
+    IO.inspect(assigns.winner, label: :winner)
+
+    on_cancel =
+      if assigns.winner, do: JS.push("navigate_home"), else: JS.push("hide_scorecard")
+
+    assigns =
+      assigns
+      |> assign(hand_scores: hand_scores)
+      |> assign(on_cancel: on_cancel)
 
     ~H"""
     <.button class="absolute" 
@@ -381,12 +414,14 @@ defmodule CallbreakWeb.LobbyLive do
     </.button>
 
     <.modal 
-    on_cancel = {JS.push("hide_scorecard")}
+    on_cancel = {@on_cancel}
     show id = "scorecard_modal" 
     :if={@hand_scores}
     > 
 
-    <.table id="hand_scores-table" rows={@hand_scores} >
+    <h1 :if={@winner}> !!! <%= @winner %> won !!! </h1>
+
+    <.table id="hand_scores-table" rows={@hand_scores}>
 
     <:col :let={hand_score} label={@player_id}>
     <%= Map.get(hand_score,@player_id) %>

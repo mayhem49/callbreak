@@ -141,6 +141,12 @@ defmodule Callbreak.Player do
       end
     )
   end
+
+  def get_winner(player) do
+    IO.inspect(player.scorecard, label: :scorecard)
+    {player, score} = Enum.max_by(player.scorecard, fn {player, score} -> score end)
+    player
+  end
 end
 
 defmodule Callbreak.Player.Render do
