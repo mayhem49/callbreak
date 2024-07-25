@@ -34,6 +34,7 @@ defmodule CallbreakWeb.LobbyLive do
       |> assign(state: state)
       |> assign(dealer: nil)
       |> assign(current_player: nil)
+      |> assign(show_scorecard: false)
 
     {:ok, socket}
   end
@@ -152,6 +153,7 @@ defmodule CallbreakWeb.LobbyLive do
 
     {:noreply,
      socket
+     |> assign(show_scorecard: true)
      |> assign(state: Player.handle_scorecard(socket.assigns.state, hand_score, total_score))}
   end
 
@@ -161,6 +163,14 @@ defmodule CallbreakWeb.LobbyLive do
   end
 
   # handle-event
+  def handle_event("hide_scorecard", params, socket) do
+    Logger.warning("hide_scorecard")
+
+    {:noreply,
+     socket
+     |> assign(show_scorecard: false)}
+  end
+
   def handle_event("card_play", %{"card_index" => card_index} = params, socket) do
     %{game_id: game_id, player_id: player_id} = socket.assigns.state
 
@@ -193,6 +203,11 @@ defmodule CallbreakWeb.LobbyLive do
       GameServer.join_game(game_id, bot_id)
     end)
 
+    {:noreply, socket}
+  end
+
+  def handle_event(event, _params, socket) do
+    Logger.warning("UNHANDLED EVENT #{inspect(event)}")
     {:noreply, socket}
   end
 
@@ -278,7 +293,14 @@ defmodule CallbreakWeb.LobbyLive do
 
     </div>
 
-    <%= scorecard_modal(assigns) %>
+    <.scorecard_modal 
+    hand_scores={@state.hand_scores} 
+    scorecard={@state.scorecard}
+    opponents={@state.opponents}
+    player_id={@state.player_id}
+
+    :if={@show_scorecard} 
+    />
     </div>
     """
   end
@@ -345,38 +367,35 @@ defmodule CallbreakWeb.LobbyLive do
 
   def scorecard_modal(assigns) do
     # todo make it better
-    hand_scores = assigns.state.hand_scores
-
     hand_scores =
-      if hand_scores && Enum.empty?(hand_scores),
+      if Enum.empty?(assigns.hand_scores),
         do: nil,
-        else: hand_scores
+        else: assigns.hand_scores
 
-    IO.inspect(hand_scores, label: :hand_scores)
-    IO.inspect(hand_scores, label: :hand_scores)
-    IO.inspect(hand_scores, label: :hand_scores)
-    IO.inspect(hand_scores, label: :hand_scores)
     assigns = assign(assigns, hand_scores: hand_scores)
 
     ~H"""
-    <.button class="absolute" phx-click={
-    show_modal("scorecard_modal")
-    }> 
+    <.button class="absolute" 
+    phx-click={show_modal("scorecard_modal")}> 
     show modal
     </.button>
 
-    <.modal show id = "scorecard_modal" :if={@hand_scores}> 
+    <.modal 
+    on_cancel = {JS.push("hide_scorecard")}
+    show id = "scorecard_modal" 
+    :if={@hand_scores}
+    > 
 
     <.table id="hand_scores-table" rows={@hand_scores} >
 
-    <:col :let={hand_score} label={@state.player_id}>
-    <%= Map.get(hand_score,@state.player_id) %>
+    <:col :let={hand_score} label={@player_id}>
+    <%= Map.get(hand_score,@player_id) %>
     </:col>
 
-    <%= for  {_player, _pos} <- @state.opponents do%>
+    <%= for  {_player, _pos} <- @opponents do%>
     <% end %>
 
-    <:col :for={{player, _pos} <- @state.opponents}:let={hand_score} label={player}>
+    <:col :for={{player, _pos} <- @opponents}:let={hand_score} label={player}>
     <%= Map.get(hand_score,player, player) %>
     </:col>
 
