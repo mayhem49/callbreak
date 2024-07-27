@@ -167,7 +167,7 @@ defmodule Callbreak.Hand do
         trick_won = Map.get(hand.tricks, player, 0)
 
         score =
-          if trick_won > bid,
+          if trick_won >= bid,
             do: {bid, trick_won - bid},
             else: {-bid, 0}
 
