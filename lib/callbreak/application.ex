@@ -2,6 +2,10 @@ defmodule Callbreak.Application do
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
   @moduledoc false
+  alias Callbreak.GameServer
+  alias Callbreak.GameTracker
+  alias Callbreak.PlayerSupervisor
+  alias Callbreak.Player
 
   use Application
 
@@ -54,28 +58,17 @@ defmodule Callbreak.Application do
   def register(name, pid) do
     Registry.register(Callbreak.Registry, name, pid)
   end
-end
 
-defmodule Test do
-  alias Callbreak.Application
+  def play_bots() do
+    # todo this will leave the existing game, if any, with incomplete players
+    :ok = GameTracker.renew_game()
+    {:ok, game_id} = GameTracker.create_or_get_game()
+    :ok = GameTracker.renew_game()
 
-  @name :server
-  def start_link() do
-    GenServer.start_link(__MODULE__, nil, name: Application.via_tuple(@name))
-  end
-
-  def print do
-    GenServer.call(Application.via_tuple(@name), :print)
-  end
-
-  @impl true
-  def init(nil) do
-    {:ok, nil}
-  end
-
-  @impl true
-  def handle_call(:print, _from, state) do
-    IO.inspect("print from genserver")
-    {:noreply, state}
+    Enum.each(1..4, fn _ ->
+      bot_id = Player.random_player_id()
+      {:ok, _bot_pid} = PlayerSupervisor.start_bot({bot_id, game_id})
+      GameServer.join_game(game_id, bot_id)
+    end)
   end
 end

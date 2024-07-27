@@ -207,6 +207,7 @@ defmodule Callbreak.Game do
     if Enum.count(game.scorecard) == 5 do
       game
       |> notify_to_all({:winner, "random player for now"})
+      |> notify_server(:game_completed)
     else
       game
       |> start_new_hand()
@@ -272,6 +273,10 @@ defmodule Callbreak.Game do
 
   defp notify_player(game, player, instruction) do
     %__MODULE__{game | instructions: [{:notify_player, player, instruction} | game.instructions]}
+  end
+
+  defp notify_server(game, message) do
+    %__MODULE__{game | instructions: [{:notify_server, message} | game.instructions]}
   end
 end
 

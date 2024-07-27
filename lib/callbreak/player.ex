@@ -200,9 +200,12 @@ defmodule Callbreak.Player do
             if trump_suit_played? do
               max_trump_card = get_max_card_of_suit(current_trick_cards, trump_suit)
 
-              Enum.filter(trump_cards, fn card ->
-                Card.rank_to_value(card) > Card.rank_to_value(max_trump_card)
-              end)
+              max_trump_cards =
+                Enum.filter(trump_cards, fn card ->
+                  Card.rank_to_value(card) > Card.rank_to_value(max_trump_card)
+                end)
+
+              if Enum.empty?(max_trump_cards), do: trump_cards, else: max_trump_cards
             else
               trump_cards
             end
@@ -274,6 +277,5 @@ defmodule Callbreak.Player.Render do
         [Map.get(hand_score, player.player_id) | scores]
       end)
     end)
-    |> IO.inspect(lable: :render_scorecard)
   end
 end

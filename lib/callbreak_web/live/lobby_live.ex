@@ -213,8 +213,11 @@ defmodule CallbreakWeb.LobbyLive do
 
     bot_count = 3 - Enum.count(opponents)
 
+    # since we are directly joining to the known game,
+    # and on doing so gametracker doesnot know about it.
+    :ok = GameTracker.renew_game()
+
     Enum.each(1..bot_count, fn _ ->
-      :ok = GameTracker.renew_game()
       bot_id = Player.random_player_id()
       {:ok, _bot_pid} = PlayerSupervisor.start_bot({bot_id, game_id})
       GameServer.join_game(game_id, bot_id)
@@ -282,8 +285,8 @@ defmodule CallbreakWeb.LobbyLive do
         <div class={"card_area card_area-#{position}"}>card-1</div>
       <% end %>
 
-      <%= for {position, card} <- @current_trick do %>
-        <div class={"card-play #{position}"}>
+      <%= for {position, {_, suit} = card} <- @current_trick do %>
+        <div class={"card-play #{position} #{if suit in [:spade, :club], do: "card-black", else: "card-red"}"}>
           <span><%= Callbreak.Card.card_to_string(card) %></span>
           <span><%= Callbreak.Card.card_to_string(card) %></span>
         </div>
@@ -303,9 +306,9 @@ defmodule CallbreakWeb.LobbyLive do
       <div
         id="cards-container"
         class={"card_area  card_area-bottom " <> 
-    if @current_state == :playing and @current_player == @state.player_id, do: "",
-    else: "opacity-50 pointer-events-none"
-    }
+        if @current_state == :playing and @current_player == @state.player_id, do: "",
+          else: "opacity-50 pointer-events-none"
+      }
       >
         <%= for card <- @current_cards do %>
           <%= render_card(assigns, card) %>
@@ -393,9 +396,6 @@ defmodule CallbreakWeb.LobbyLive do
         do: nil,
         else: assigns.hand_scores
 
-    IO.inspect(assigns.winner, label: :winner)
-    IO.inspect(assigns.winner, label: :winner)
-    IO.inspect(assigns.winner, label: :winner)
     IO.inspect(assigns.winner, label: :winner)
     IO.inspect(assigns.winner, label: :winner)
 

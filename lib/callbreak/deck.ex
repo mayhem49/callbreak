@@ -34,7 +34,6 @@ defmodule Callbreak.Deck do
 
   # group in the order of @suites
   def arrange_cards(cards) do
-    IO.inspect(cards)
     grouped_cards = Enum.group_by(cards, fn {_, suit} -> suit end)
 
     Enum.flat_map(@suites, fn suit ->

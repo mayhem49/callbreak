@@ -2,8 +2,9 @@ defmodule Callbreak.GameDynamicSupervisor do
   use DynamicSupervisor
 
   @moduledoc """
-  This module supervises a GameSupervisor dynamically.
+  This module supervises GameServers.
   """
+  alias Callbreak.GameServer
 
   def start_link(init_args) do
     IO.puts(__MODULE__)
@@ -11,7 +12,7 @@ defmodule Callbreak.GameDynamicSupervisor do
   end
 
   def start_game(game_id) when is_binary(game_id) do
-    child_spec = {Callbreak.GameServer, game_id}
+    child_spec = Supervisor.child_spec({Callbreak.GameServer, game_id}, restart: :transient)
     DynamicSupervisor.start_child(__MODULE__, child_spec)
   end
 
@@ -23,7 +24,8 @@ end
 
 defmodule Callbreak.PlayerSupervisor do
   @moduledoc """
-  This module supervises players.
+  This module supervises bot players now.
+  since player are liveview process and supervises by other supervisors, I guess.
   """
 
   use DynamicSupervisor
@@ -33,6 +35,7 @@ defmodule Callbreak.PlayerSupervisor do
   # When the game terminates, the supervisor also terminates.
 
   def start_link(init_arg) do
+    Process.info(self(), :current_stacktrace)
     IO.inspect(__MODULE__)
     DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
@@ -43,12 +46,12 @@ defmodule Callbreak.PlayerSupervisor do
   end
 
   def start_player(player) do
-    child_spec = {Callbreak.Player, player}
+    child_spec = Supervisor.child_spec({Callbreak.Player, player}, restart: :transient)
     DynamicSupervisor.start_child(__MODULE__, child_spec)
   end
 
   def start_bot({_, _} = args) do
-    child_spec = {Callbreak.Player.Bot, args}
+    child_spec = Supervisor.child_spec({Callbreak.Player.Bot, args}, restart: :transient)
     DynamicSupervisor.start_child(__MODULE__, child_spec)
   end
 end

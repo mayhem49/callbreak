@@ -196,7 +196,9 @@ div.self-card:not(:first-child){
 
 .card-black{
   color: black;
+  font-size: 1.5rem;
 }
 .card-red{
-  color: red
+  color: red;
+  font-size: 1.5rem;
 }

@@ -1,6 +1,7 @@
 defmodule Callbreak.GameServer do
   use GenServer
   alias Callbreak.{Game, Player}
+  require Logger
 
   def start_link(game_id) do
     IO.puts("starting_game: #{game_id}")
@@ -62,6 +63,18 @@ defmodule Callbreak.GameServer do
     {:reply, :ok, game}
   end
 
+  @impl true
+  def handle_info(:kill_self, state) do
+    Logger.warning("shutting down game_server: #{state.game_id}")
+    {:stop, :normal, state}
+  end
+
+  @impl true
+  def terminate(reason, state) do
+    Logger.warning("inside terminate of game_server")
+    :ok
+  end
+
   defp handle_game_instructions({instructions, game}) do
     Enum.each(instructions, &handle_instruction(&1))
     game
@@ -69,6 +82,13 @@ defmodule Callbreak.GameServer do
 
   defp handle_instruction({:notify_player, player, message_payload}) do
     Player.notify_liveview(player, message_payload)
+  end
+
+  defp handle_instruction({:notify_server, :game_completed}) do
+    # since the handler for this message will be run only after 
+    # the current message execution is completed, this should be fine
+    # bot will kill when they receive {:winner,winner} message
+    Process.send(self(), :kill_self, [:noconnect])
   end
 
   defp via_tuple(game_id) do
