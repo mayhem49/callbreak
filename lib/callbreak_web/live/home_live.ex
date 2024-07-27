@@ -30,27 +30,28 @@ defmodule CallbreakWeb.HomeLive do
   def render(assigns) do
     ~H"""
     <div class="container">
+      <h1>Welcome to Game Name</h1>
+      <form phx-submit="join_game">
+        <div class="input-group">
+          <label for="username">Enter your username:</label>
 
-    <h1>Welcome to Game Name</h1>
-    <form phx-submit="join_game">
-    <div class="input-group">
-
-    <label for="username">Enter your username:</label>
-
-    <div class="flex flex-row">
-    <input type="text" id="username" name="username" minlength="6" placeholder="Username" />
-    <button 
-    type = "button"
-    phx-click ={
-    JS.dispatch("lobby:generate_player_id", to: "#username", detail: %{length: Player.get_player_id_len()})}
-    >
-    random 
-    </button>
-    </div>
-
-    </div>
-    <button type="submit">Join</button>
-    </form>
+          <div class="flex flex-row">
+            <input type="text" id="username" name="username" minlength="6" placeholder="Username" />
+            <button
+              type="button"
+              phx-click={
+                JS.dispatch("lobby:generate_player_id",
+                  to: "#username",
+                  detail: %{length: Player.get_player_id_len()}
+                )
+              }
+            >
+              random
+            </button>
+          </div>
+        </div>
+        <button type="submit">Join</button>
+      </form>
     </div>
     """
   end

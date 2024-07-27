@@ -104,9 +104,24 @@ div.self-card:not(:first-of-type){
 .card_area-bottom {
   width: 100%;
 }
-.self-card:last-child {
-  /*flex: 0 0 auto;*/
+.self-card:hover{
+  background-color: rgb(225,225,225);
 }
+.self-card{
+  cursor: pointer;
+  background-color: rgb(245,245,245);
+}
+.self-card.playable{
+  transform: translateY(-12%);
+}
+.self-card.unplayable{
+  pointer-events: none;
+  background-color: rgb(200,200,200);
+}
+div.self-card:not(:first-child){
+  box-shadow: -6px 3px 6px -3px #616161, -6px 0px 6px -3px #616161;
+}
+
 .card_area-bottom {
   /* overflow-x: scroll; */
   white-space: nowrap;
@@ -185,21 +200,3 @@ div.self-card:not(:first-of-type){
 .card-red{
   color: red
 }
-
-.self-card:hover{
-  background-color: rgb(225,225,225);
-}
-.self-card{
-  cursor: pointer;
-  background-color: rgb(245,245,245);
-
-}
-
-.self-card.unplayable{
-  pointer-events: none;
-  background-color: rgb(200,200,200);
-}
-div.self-card:not(:first-child){
-  box-shadow: -6px 3px 6px -3px #616161, -6px 0px 6px -3px #616161;
-}
-

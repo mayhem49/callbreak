@@ -1,4 +1,5 @@
 defmodule Callbreak.Player do
+  alias Callbreak.Player
   alias Callbreak.{GameServer, Card, Application, Deck, Trick}
 
   # todo maybe store opponents position in liveview since that is only related to rendering?
@@ -143,9 +144,86 @@ defmodule Callbreak.Player do
   end
 
   def get_winner(player) do
-    IO.inspect(player.scorecard, label: :scorecard)
     {player, score} = Enum.max_by(player.scorecard, fn {player, score} -> score end)
     player
+  end
+
+  @doc """
+  contains card of start suit -> 
+  ---- if trump is not played -> play winning || any of start suit
+  ---- else if trump is played -> play any of start suit
+
+  doesnot contains card of start suit ->
+  ---- if trump is not played -> play trump || play any
+  ---- if trump is played -> play winning trump || play any
+  ---- if play winning trump || play any
+  ---- contains trump suit ->
+  -------- if trump is played -> play winning trump || play any
+  -------- if trump is not played -> play any
+  """
+  def get_playable_cards(player) do
+    if Enum.empty?(player.current_trick.cards) do
+      player.cards
+    else
+      get_playable_cards(player.cards, player.current_trick)
+    end
+  end
+
+  defp get_playable_cards(current_cards, current_trick) do
+    start_suit = Trick.start_suit(current_trick)
+    trump_suit = Player.get_trump_suit()
+
+    grouped_cards = Enum.group_by(current_cards, fn {_, suit} -> suit end)
+    current_trick_cards = Enum.map(current_trick.cards, fn {_, card} -> card end)
+
+    trump_suit_played? =
+      start_suit != trump_suit and
+        Enum.any?(
+          current_trick_cards,
+          fn {_, suit} -> suit == trump_suit end
+        )
+
+    case Map.fetch(grouped_cards, start_suit) do
+      {:ok, suit_cards} ->
+        if trump_suit_played? do
+          suit_cards
+        else
+          max_suit_card = get_max_card_of_suit(current_trick_cards, start_suit)
+
+          max_cards =
+            Enum.filter(suit_cards, fn card ->
+              Card.rank_to_value(card) > Card.rank_to_value(max_suit_card)
+            end)
+
+          if Enum.empty?(max_cards), do: suit_cards, else: max_cards
+        end
+
+      :error ->
+        case Map.fetch(grouped_cards, trump_suit) do
+          {:ok, trump_cards} ->
+            if trump_suit_played? do
+              max_trump_card = get_max_card_of_suit(current_trick_cards, trump_suit)
+
+              Enum.filter(trump_cards, fn card ->
+                Card.rank_to_value(card) > Card.rank_to_value(max_trump_card)
+              end)
+            else
+              trump_cards
+            end
+
+          :error ->
+            current_cards
+        end
+    end
+  end
+
+  defp get_max_card_of_suit(deck, suit) do
+    deck
+    |> Enum.filter(fn
+      {_, ^suit} -> true
+      _ -> false
+    end)
+    |> Enum.max_by(&Card.rank_to_value/1)
   end
 end
 
@@ -177,29 +255,12 @@ defmodule Callbreak.Player.Render do
   end
 
   def get_cards(%Player{} = player) do
-    start_suit = Trick.start_suit(player.current_trick)
-
-    # can play any card if no card available for current suit
-    # todo must playt trump if no one else have
-    has_card_of_start_suit? =
-      start_suit != nil and
-        Enum.any?(
-          player.cards,
-          fn
-            {_rank, ^start_suit} -> true
-            _ -> false
-          end
-        )
+    playable_cards = Player.get_playable_cards(player)
 
     player.cards
     |> Enum.with_index()
     |> Enum.map(fn {{_rank, suit} = card, index} ->
-      can_play? =
-        cond do
-          has_card_of_start_suit? and suit == start_suit -> true
-          has_card_of_start_suit? -> false
-          true -> true
-        end
+      can_play? = Enum.member?(playable_cards, card)
 
       {index, card, can_play?}
     end)

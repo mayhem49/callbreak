@@ -86,40 +86,8 @@ defmodule Callbreak.Player.Bot do
     3
   end
 
-  @doc """
-  if first_play: play random
-
-  the bot plays as follows:
-  if there is card of existing suit: play  the maximum of that suit
-  else if there is card of trump_suit: play the minimum of trump suit
-  else: play the smallest of remaining two suits
-  """
-  def bot_play(%{current_trick: current_trick, cards: cards})
-      when map_size(current_trick) == 0 do
-    Enum.random(cards)
-  end
-
   def bot_play(state) do
-    start_suit = Trick.start_suit(state.current_trick)
-    grouped_cards = Enum.group_by(state.cards, fn {_, suit} -> suit end)
-
-    # IO.inspect {grouped_cards, start_suit} , label: :botplay
-    case Map.fetch(grouped_cards, start_suit) do
-      {:ok, suit_cards} ->
-        Enum.max_by(suit_cards, &Card.rank_to_value/1)
-
-      :error ->
-        case Map.fetch(grouped_cards, Player.get_trump_suit()) do
-          {:ok, trump_cards} ->
-            Enum.min_by(trump_cards, &Card.rank_to_value/1)
-
-          :error ->
-            Enum.min_by(state.cards, &Card.rank_to_value/1)
-            # todo: bot improvement
-            # play whichever have more no of cards
-            # also factor in the cards played
-        end
-    end
+    Enum.random(Player.get_playable_cards(state))
   end
 end
 
