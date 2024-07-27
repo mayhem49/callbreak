@@ -40,20 +40,5 @@ liveSocket.connect()
 window.liveSocket = liveSocket
 
 //events
-function generate_random_string(length) {
-    let result = '';
-    const characters = 'abcdefghijklmnopqrstuvwxyz'; // all lowercase letters
-    for (let i = 0; i < length; i++) {
-        const randomIndex = Math.floor(Math.random() * characters.length);
-        result += characters.charAt(randomIndex);
-    }
-    return result;
-}
-
-window.addEventListener("lobby:generate_player_id", (e) =>{
-  const player_id = generate_random_string(e.detail.length)
-  e.target.value = player_id
-})
-
 window.addEventListener("game:show_scorecard", (e) =>{
 })

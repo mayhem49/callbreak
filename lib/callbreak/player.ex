@@ -17,7 +17,7 @@ defmodule Callbreak.Player do
   ]
 
   @trump_suit :spade
-  @player_id_len 5
+  @player_id_len 4
 
   def new(player_id, game_id) do
     %__MODULE__{
@@ -36,11 +36,7 @@ defmodule Callbreak.Player do
   def get_trump_suit(), do: @trump_suit
 
   def random_player_id() do
-    id =
-      Enum.map(1..@player_id_len, fn _ -> Enum.random(?a..?z) end)
-      |> List.to_string()
-
-    "player-" <> id
+    MnemonicSlugs.generate_slug(2)
   end
 
   def notify_liveview(player_id, instruction) do

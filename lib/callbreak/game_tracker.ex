@@ -3,6 +3,8 @@ defmodule Callbreak.GameTracker do
   alias Callbreak.GameServer
   alias Callbreak.GameDynamicSupervisor
 
+  require Logger
+
   @moduledoc """
   This module stores the available game to join, otherwise creates a new one.
   """
@@ -47,6 +49,7 @@ defmodule Callbreak.GameTracker do
   defp create_or_get_game(%{game_id: nil}) do
     game_id = random_game_id()
     {:ok, _pid} = GameDynamicSupervisor.start_game(game_id)
+    Logger.info(game_created: game_id)
     game_id
   end
 
