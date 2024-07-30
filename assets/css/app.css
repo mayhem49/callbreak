@@ -88,9 +88,7 @@
 }
 .self-card {
   box-sizing: border-box;
-  display: inline-block;
-  flex-grow: 1;
-  flex-shrink: 1;
+  float: left;
   height: 110%;
   transform: translateY(-9%);
   aspect-ratio: 2/3;
@@ -201,4 +199,42 @@ div.self-card:not(:first-child){
 .card-red{
   color: red;
   font-size: 1.5rem;
+}
+
+.card_area.opponent>div{
+  height: 100%;
+  aspect-ratio: 2/3;
+  float: left;
+
+  box-sizing: border-box;
+  box-shadow: -6px 3px 6px -3px #616161, -6px 0px 6px -3px #616161;
+  background:
+    linear-gradient(115deg, transparent 75%, rgba(255,255,255,.8) 75%) 0 0,
+    linear-gradient(245deg, transparent 75%, rgba(255,255,255,.8) 75%) 0 0,
+    linear-gradient(115deg, transparent 75%, rgba(255,255,255,.8) 75%) 7px -15px,
+    linear-gradient(245deg, transparent 75%, rgba(255,255,255,.8) 75%) 7px -15px,
+    #36c;
+  background-size: 15px 30px;
+}
+.card_area.opponent>div:first-of-type{
+  margin-left: 0;
+}
+.card_area.opponent>div:not(:first-of-type){
+  margin-left: -39.8%;
+}
+.card_area.opponent{
+  box-sizing: border-box;
+
+}
+.player.current-player{
+  animation: 1s linear infinite alternate current-player-animation;
+}
+
+@keyframes current-player-animation{
+from{
+  background-color: gray;
+}
+to{
+  background-color: aqua;
+}
 }

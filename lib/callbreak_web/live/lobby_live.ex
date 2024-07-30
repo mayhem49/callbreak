@@ -1,6 +1,5 @@
 defmodule CallbreakWeb.LobbyLive do
   alias Callbreak.Card
-  alias Callbreak.Trick
   alias Callbreak.GameTracker
   alias Callbreak.PlayerSupervisor
   alias Callbreak.GameServer
@@ -282,7 +281,11 @@ defmodule CallbreakWeb.LobbyLive do
     <div class="board-container  top">
       <%= for {player, position} <- @state.opponents do %>
         <%= player(assigns, player, position) %>
-        <div class={"card_area card_area-#{position}"}>card-1</div>
+        <div class={"card_area opponent card_area-#{position}"}>
+          <%= for {_,i} <- Enum.with_index(@current_cards) do %>
+            <div>c</div>
+          <% end %>
+        </div>
       <% end %>
 
       <%= for {position, {_, suit} = card} <- @current_trick do %>
@@ -303,13 +306,7 @@ defmodule CallbreakWeb.LobbyLive do
 
       <%= player(assigns, @state.player_id, :bottom) %>
 
-      <div
-        id="cards-container"
-        class={"card_area  card_area-bottom " <> 
-        if @current_state == :playing and @current_player == @state.player_id, do: "",
-          else: "opacity-50 pointer-events-none"
-      }
-      >
+      <div id="cards-container" class="card_area  card_area-bottom ">
         <%= for card <- @current_cards do %>
           <%= render_card(assigns, card) %>
         <% end %>
@@ -328,9 +325,12 @@ defmodule CallbreakWeb.LobbyLive do
   end
 
   def render_card(assigns, {index, {_rank, suit} = card, can_play?}) do
+    is_turn? =
+      assigns.current_state == :playing and assigns.current_player == assigns.state.player_id
+
     card_class = [
       "self-card",
-      if(can_play?, do: "playable", else: "unplayable"),
+      if(is_turn? and can_play?, do: "playable", else: "unplayable"),
       if(suit in [:spade, :club], do: "card-black", else: "card-red")
     ]
 
@@ -354,14 +354,11 @@ defmodule CallbreakWeb.LobbyLive do
       |> assign(target_position: target_position)
 
     ~H"""
-    <div class={"player player-#{@target_position}"}>
-      <div><%= @target_player %></div>
-      <div>position: <%= @target_position %></div>
+    <div class={"player player-#{@target_position} #{if @current_player == @target_player, do: "current-player", else: ""}"}>
+      <div><strong><%= @target_player %></strong></div>
       <div>
         <%= Render.current_score_to_string(@state, @target_player) %>
       </div>
-
-      <.loading :if={@current_player == @target_player} />
     </div>
     """
   end
