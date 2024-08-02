@@ -9,6 +9,9 @@ defmodule Callbreak.Constants do
 
       @timer_in_sec 5
       @timer_in_msec @timer_in_sec * 1000
+
+      @player_id_len 6
+      @game_id_len 6
     end
   end
 end

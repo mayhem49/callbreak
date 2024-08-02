@@ -17,8 +17,6 @@ defmodule Callbreak.Player do
     :hand_scores
   ]
 
-  @player_id_len 4
-
   def new(player_id, game_id) do
     %__MODULE__{
       game_id: game_id,
@@ -32,10 +30,8 @@ defmodule Callbreak.Player do
     }
   end
 
-  def get_player_id_len(), do: @player_id_len
-
   def random_player_id() do
-    MnemonicSlugs.generate_slug(2)
+    MnemonicSlugs.generate_slug(2) <> Integer.to_string(:rand.uniform(999) * -1)
   end
 
   def notify_liveview(player_id, instruction) do

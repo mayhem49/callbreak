@@ -1,5 +1,6 @@
 defmodule Callbreak.GameTracker do
   alias Callbreak.GameDynamicSupervisor
+  use Callbreak.Constants
 
   require Logger
 
@@ -58,7 +59,7 @@ defmodule Callbreak.GameTracker do
 
   def random_game_id() do
     id =
-      1..5
+      1..@game_id_len
       |> Enum.map(fn _ -> Enum.random(?a..?z) end)
       |> List.to_string()
 

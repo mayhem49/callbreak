@@ -1,13 +1,14 @@
 defmodule CallbreakWeb.HomeLive do
   require Logger
   use CallbreakWeb, :live_view
+  use Callbreak.Constants
 
   alias Callbreak.{GameTracker, Player}
 
   # todo handle the case of conflicting player id
   # maybe append random numbers
   defp maybe_generate_player_id(%{"username" => username}) do
-    if String.length(username) < Player.get_player_id_len(),
+    if String.length(username) < @player_id_len,
       do: Player.random_player_id(),
       else: username
   end
@@ -27,7 +28,7 @@ defmodule CallbreakWeb.HomeLive do
     {:ok,
      socket
      |> assign(random_player_id: Player.random_player_id())
-     |> assign(player_id_length: Player.get_player_id_len())}
+     |> assign(player_id_length: @player_id_len)}
   end
 
   def render(assigns) do
