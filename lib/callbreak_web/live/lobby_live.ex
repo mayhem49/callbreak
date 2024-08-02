@@ -7,6 +7,10 @@ defmodule CallbreakWeb.LobbyLive do
   alias Callbreak.Player.Render
   require Logger
 
+  @timer_el_id "timer"
+  # in seconds
+  @timer 5
+
   use CallbreakWeb, :live_view
   # current_state: :waiting | :bidding | :playing | :completed
   # :waiting | :playing -> :bidding, when {:cards, dealer, cards is received
@@ -84,7 +88,7 @@ defmodule CallbreakWeb.LobbyLive do
     # todo handle player bidding here
     # todo handle player bidding here
     # todo handle player bidding here
-    {:noreply, socket}
+    {:noreply, socket |> push_event("start-timer", %{timer: @timer, id: @timer_el_id})}
   end
 
   def handle_cast({:bid, player, bid} = msg, socket) do
@@ -120,7 +124,9 @@ defmodule CallbreakWeb.LobbyLive do
     # todo handle play here
     # todo handle play here
     # todo handle play here
-    {:noreply, socket}
+
+    # timer is set after :play and :bid message
+    {:noreply, socket |> push_event("start-timer", %{timer: @timer, id: @timer_el_id})}
   end
 
   def handle_cast({:trick_winner, winner} = msg, socket) do
@@ -169,6 +175,12 @@ defmodule CallbreakWeb.LobbyLive do
     Logger.warning(" UNHANDLED MESSAGE #{inspect(msg)}")
     {:noreply, socket}
   end
+
+  # handle_info
+  # this is called after @timer seconds
+  # if there have been no move by the player 
+  # maybe do it in genserver
+  # handle it 
 
   # handle-event
   def handle_event("navigate_home", params, socket) do
@@ -279,6 +291,7 @@ defmodule CallbreakWeb.LobbyLive do
 
     ~H"""
     <div class="board-container  top">
+      <div id="timer"></div>
       <%= for {player, position} <- @state.opponents do %>
         <%= player(assigns, player, position) %>
         <div class={"card_area opponent card_area-#{position}"}>
@@ -300,7 +313,9 @@ defmodule CallbreakWeb.LobbyLive do
         class="bidding"
       >
         <%= for v <- 1..13 do %>
-          <span class="bid" phx-click="bid" phx-value-bid={v}><%= v %></span>
+          <span class="bid" phx-click={JS.dispatch("clear-timer") |> JS.push("bid")} phx-value-bid={v}>
+            <%= v %>
+          </span>
         <% end %>
       </section>
 
@@ -324,6 +339,48 @@ defmodule CallbreakWeb.LobbyLive do
     """
   end
 
+  def scorecard_modal(assigns) do
+    # todo make it better
+
+    scorecard = if assigns.scorecard, do: [assigns.scorecard], else: []
+
+    hand_scores =
+      if Enum.empty?(assigns.hand_scores),
+        do: nil,
+        else: Enum.reverse(assigns.hand_scores) ++ scorecard
+
+    on_cancel =
+      if assigns.winner, do: JS.push("navigate_home"), else: JS.push("hide_scorecard")
+
+    assigns =
+      assigns
+      |> assign(hand_scores: hand_scores)
+      |> assign(on_cancel: on_cancel)
+
+    ~H"""
+    <.button class="absolute" phx-click={show_modal("scorecard_modal")}>
+      show modal
+    </.button>
+
+    <.modal :if={@hand_scores} on_cancel={@on_cancel} show id="scorecard_modal">
+      <h1 :if={@winner}>!!! <%= @winner %> won !!!</h1>
+
+      <.table id="hand_scores-table" rows={@hand_scores}>
+        <:col :let={hand_score} label={@player_id}>
+          <%= Map.get(hand_score, @player_id) %>
+        </:col>
+
+        <%= for  {_player, _pos} <- @opponents do %>
+        <% end %>
+
+        <:col :let={hand_score} :for={{player, _pos} <- @opponents} label={player}>
+          <%= Map.get(hand_score, player, player) %>
+        </:col>
+      </.table>
+    </.modal>
+    """
+  end
+
   def render_card(assigns, {index, {_rank, suit} = card, can_play?}) do
     is_turn? =
       assigns.current_state == :playing and assigns.current_player == assigns.state.player_id
@@ -341,7 +398,11 @@ defmodule CallbreakWeb.LobbyLive do
       |> assign(card: card)
 
     ~H"""
-    <div class={@card_class} phx-click="card_play" phx-value-card_index={@index}>
+    <div
+      class={@card_class}
+      phx-click={JS.dispatch("clear-timer") |> JS.push("card_play")}
+      phx-value-card_index={@index}
+    >
       <%= Card.card_to_string(@card) %>
     </div>
     """
@@ -383,48 +444,6 @@ defmodule CallbreakWeb.LobbyLive do
         />
       </svg>
     </div>
-    """
-  end
-
-  def scorecard_modal(assigns) do
-    # todo make it better
-    hand_scores =
-      if Enum.empty?(assigns.hand_scores),
-        do: nil,
-        else: assigns.hand_scores
-
-    IO.inspect(assigns.winner, label: :winner)
-    IO.inspect(assigns.winner, label: :winner)
-
-    on_cancel =
-      if assigns.winner, do: JS.push("navigate_home"), else: JS.push("hide_scorecard")
-
-    assigns =
-      assigns
-      |> assign(hand_scores: hand_scores)
-      |> assign(on_cancel: on_cancel)
-
-    ~H"""
-    <.button class="absolute" phx-click={show_modal("scorecard_modal")}>
-      show modal
-    </.button>
-
-    <.modal :if={@hand_scores} on_cancel={@on_cancel} show id="scorecard_modal">
-      <h1 :if={@winner}>!!! <%= @winner %> won !!!</h1>
-
-      <.table id="hand_scores-table" rows={@hand_scores}>
-        <:col :let={hand_score} label={@player_id}>
-          <%= Map.get(hand_score, @player_id) %>
-        </:col>
-
-        <%= for  {_player, _pos} <- @opponents do %>
-        <% end %>
-
-        <:col :let={hand_score} :for={{player, _pos} <- @opponents} label={player}>
-          <%= Map.get(hand_score, player, player) %>
-        </:col>
-      </.table>
-    </.modal>
     """
   end
 end

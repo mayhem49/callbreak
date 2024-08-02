@@ -63,7 +63,7 @@ defmodule Callbreak.Player.Bot do
     # for some reason logger doesn't print all the messages 
     # it is because of threshold limit of logger which is 500
     # :timer.sleep(:rand.uniform(500))
-    :timer.sleep(5000)
+    :timer.sleep(500)
     play_card = bot_play(state)
     GameServer.play(state.game_id, state.player_id, play_card)
     {:noreply, state}

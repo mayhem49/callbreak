@@ -42,3 +42,36 @@ window.liveSocket = liveSocket
 //events
 window.addEventListener("game:show_scorecard", (e) =>{
 })
+
+// so that the previous interval will be cleared before starting the new interval
+// this feels too hacky tbh
+let timer;
+window.addEventListener( "phx:start-timer", e =>{
+  console.log(e.detail)
+  let {timer: timer_value, id} = e.detail
+  let timer_el = document.getElementById(id)
+  timer_el.innerText = timer_value
+
+  //clear existing timer if any?
+  clearInterval(timer)
+  //first execution happens after delay seconds not instantly
+   timer = setInterval(function(){
+    //closure instead of parsing every time
+    timer_value = timer_value - 1
+    let timer_el = document.getElementById(id)
+    timer_el.innerText = timer_value
+
+    console.log("timer: ", timer_value)
+    if(timer_value == 0) {
+      console.log("clearing timer")
+      clearInterval(timer)
+    }
+  }, 1000)
+})
+
+window.addEventListener("phx:clear-timer", e => {
+  console.log("clearing timer inside event-listener")
+
+  clearInterval(timer)
+})
+

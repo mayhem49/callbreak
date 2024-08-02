@@ -35,3 +35,6 @@ callbreak-*.tar
 npm-debug.log
 /assets/node_modules/
 
+#temp files
+temp*
+tmp*

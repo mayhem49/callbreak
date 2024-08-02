@@ -2,18 +2,17 @@ defmodule Callbreak.Game do
   @moduledoc """
   The game is in one of four possible state. 
   - waiting
-  - bidding
   - playing
   - completed
 
   After the waiting stage is completed, {:game_start, opponents} message is sent to players
-  and bidding is started.
+  and playing is started.
 
-  Bidding and playing process are repeated five times.
-
-  At the start of new hand, players are notified via {:cards, dealer, cards} message
-  After the bidding stage is completed, :play_start, not to be confused with :game_start message is sent to each player.
+  After the game is completed, it is in :completed state.
+  Maybe add :current_state key in struct?
   """
+
+  # TODO: add game_state. see module_doc
   defstruct [
     :game_id,
     :players,
@@ -38,7 +37,7 @@ defmodule Callbreak.Game do
   alias Callbreak.Hand
 
   def new(game_id) do
-    game = %__MODULE__{
+    %__MODULE__{
       game_id: game_id,
       players: [],
       current_hand: nil,
@@ -47,9 +46,22 @@ defmodule Callbreak.Game do
       scorecard: [],
       instructions: []
     }
+  end
 
-    game
-    |> return_instructions_and_game()
+  # game is running when it is not waiting or completed
+  def is_running?(game) do
+    cond do
+      # waiting
+      Enum.count(game.players) < 4 ->
+        false
+
+      # completed
+      Enum.count(game.scorecard) == 5 ->
+        false
+
+      true ->
+        true
+    end
   end
 
   def join_game(%{players: players} = game, player_id)
@@ -58,14 +70,79 @@ defmodule Callbreak.Game do
     |> notify_player(player_id, {:opponents, players})
     |> notify_except(player_id, {:new_player, player_id})
     |> maybe_start_game()
+    |> notify_server(:success)
     |> return_instructions_and_game()
   end
 
   def join_game(game, player_id) do
     game
     |> notify_player(player_id, :cannot_join_game)
+    |> notify_server(:error)
     |> return_instructions_and_game()
   end
+
+  def handle_bid(%{current_player: player} = game, player, bid) do
+    case Hand.take_bid(game.current_hand, player, bid) do
+      {:ok, hand} ->
+        game
+        |> Map.put(:current_hand, hand)
+        |> notify_to_all({:bid, player, bid})
+        |> rotate_current_player()
+        |> maybe_start_play()
+        |> notify_server(:success)
+        |> return_instructions_and_game()
+
+      {:error, err_msg} ->
+        game
+        |> notify_player(player, err_msg)
+        |> notify_server(:error)
+        |> return_instructions_and_game()
+    end
+  end
+
+  # out of turn biding
+  def handle_bid(game, player, _bid) do
+    game
+    |> notify_player(player, {:out_of_turn})
+    |> notify_server(:error)
+    |> return_instructions_and_game()
+  end
+
+  def handle_play(%{current_player: player} = game, player, play_card) do
+    case Hand.play(game.current_hand, player, play_card) do
+      {:ok, hand, winner} ->
+        game
+        |> Map.put(:current_hand, hand)
+        |> notify_to_all({:play, player, play_card})
+        |> handle_trick_completion(winner)
+        |> notify_server(:success)
+        |> return_instructions_and_game()
+
+      {:error, err_msg} ->
+        game
+        |> notify_player(player, err_msg)
+        |> notify_server(:error)
+        |> return_instructions_and_game()
+    end
+  end
+
+  # out of turn play
+  def handle_play(game, player, _card) do
+    game
+    |> notify_player(player, :out_of_turn)
+    |> notify_server(:error)
+    |> return_instructions_and_game()
+  end
+
+  # autoplay -> either bid or play card
+  def handle_autoplay(game) do
+    case Hand.auto_play(game.current_hand, game.current_player) do
+      {:bid, bid} -> handle_bid(game, game.current_player, bid)
+      {:card, card} -> handle_play(game, game.current_player, card)
+    end
+  end
+
+  # private functions
 
   # starts game after joining process is completed
   # also starts bidding process
@@ -117,76 +194,29 @@ defmodule Callbreak.Game do
     end)
   end
 
-  def handle_bid(%{current_player: player} = game, player, bid) do
-    case Hand.take_bid(game.current_hand, player, bid) do
-      {:ok, hand} ->
-        game
-        |> Map.put(:current_hand, hand)
-        |> notify_to_all({:bid, player, bid})
-        |> rotate_current_player()
-        |> maybe_start_play()
-        |> return_instructions_and_game()
-
-      {:error, err_msg} ->
-        game
-        |> notify_player(player, err_msg)
-        |> return_instructions_and_game()
-    end
-  end
-
-  # out of turn biding
-  def handle_bid(game, player, _bid) do
-    game
-    |> notify_player(player, {:out_of_turn})
-    |> return_instructions_and_game()
-  end
-
   defp maybe_start_play(game) do
     if Hand.is_bidding_completed?(game.current_hand),
       do: game |> notify_to_all(:play_start) |> ask_current_player_to_play(),
       else: ask_current_player_to_bid(game)
   end
 
-  def handle_play(%{current_player: player} = game, player, play_card) do
-    case Hand.play(game.current_hand, player, play_card) do
-      {:ok, hand, winner} ->
-        game
-        |> Map.put(:current_hand, hand)
-        |> notify_to_all({:play, player, play_card})
-        |> handle_trick_completion(winner)
-        |> return_instructions_and_game()
-
-      {:error, err_msg} ->
-        game
-        |> notify_player(player, err_msg)
-        |> return_instructions_and_game()
-    end
-  end
-
-  # out of turn play
-  def handle_play(game, player, _card) do
-    game
-    |> notify_player(player, :out_of_turn)
-    |> return_instructions_and_game()
-  end
-
   # handle current trick completion
   # it cascades to `handle_hand_completion`
   # which cascades to `handle_game_completion`
-  def handle_trick_completion(game, nil) do
+  defp handle_trick_completion(game, nil) do
     game
     |> rotate_current_player()
     |> ask_current_player_to_play()
   end
 
-  def handle_trick_completion(game, winner) do
+  defp handle_trick_completion(game, winner) do
     game
     |> Map.put(:current_player, winner)
     |> notify_to_all({:trick_winner, winner})
     |> handle_hand_completion()
   end
 
-  def handle_hand_completion(game) do
+  defp handle_hand_completion(game) do
     case Hand.maybe_hand_completed(game.current_hand) do
       nil ->
         ask_current_player_to_play(game)
@@ -203,7 +233,7 @@ defmodule Callbreak.Game do
     end
   end
 
-  def handle_game_completion(game) do
+  defp handle_game_completion(game) do
     if Enum.count(game.scorecard) == 5 do
       game
       |> notify_to_all({:winner, "random player for now"})
@@ -214,7 +244,7 @@ defmodule Callbreak.Game do
     end
   end
 
-  def calculate_points(scorecard) do
+  defp calculate_points(scorecard) do
     acc =
       Enum.reduce(scorecard, %{}, fn trick_scorecard, acc ->
         Enum.reduce(trick_scorecard, acc, fn {player, {bid, extra_trick}}, acc ->
@@ -229,7 +259,7 @@ defmodule Callbreak.Game do
     end)
   end
 
-  def return_instructions_and_game(game) do
+  defp return_instructions_and_game(game) do
     {Enum.reverse(game.instructions), %{game | instructions: []}}
   end
 
@@ -245,11 +275,11 @@ defmodule Callbreak.Game do
   end
 
   # region: notification
-  def ask_current_player_to_play(%__MODULE__{} = game) do
+  defp ask_current_player_to_play(%__MODULE__{} = game) do
     notify_current_player(game, :play)
   end
 
-  def ask_current_player_to_bid(%__MODULE__{} = game) do
+  defp ask_current_player_to_bid(%__MODULE__{} = game) do
     notify_current_player(game, :bid)
   end
 
