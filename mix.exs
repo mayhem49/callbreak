@@ -9,7 +9,8 @@ defmodule Callbreak.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      elixirc_options: [warnings_as_errors: true]
     ]
   end
 
@@ -47,7 +48,9 @@ defmodule Callbreak.MixProject do
       {:gettext, "~> 0.20"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
-      {:mnemonic_slugs, "~> 0.0.3"}
+      {:mnemonic_slugs, "~> 0.0.3"},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:recode, "~> 0.7", only: :dev}
     ]
   end
 

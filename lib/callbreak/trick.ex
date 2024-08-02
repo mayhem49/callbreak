@@ -1,4 +1,5 @@
 defmodule Callbreak.Trick do
+  @moduledoc false
   use Callbreak.Constants
 
   alias Callbreak.Card
@@ -25,8 +26,7 @@ defmodule Callbreak.Trick do
   def play(%__MODULE__{start_suit: nil, winner: nil} = trick, player, card) do
     {_rank, suit} = card
 
-    %{trick | start_suit: suit}
-    |> play(player, card)
+    play(%{trick | start_suit: suit}, player, card)
   end
 
   def play(%__MODULE__{} = trick, player, card) do

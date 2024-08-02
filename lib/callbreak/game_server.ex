@@ -1,4 +1,5 @@
 defmodule Callbreak.GameServer do
+  @moduledoc false
   use GenServer
   alias Callbreak.{Game, Player}
   require Logger
@@ -6,7 +7,7 @@ defmodule Callbreak.GameServer do
   use Callbreak.Constants
 
   def start_link(game_id) do
-    IO.puts("starting_game: #{game_id}")
+    Logger.info("starting_game: #{game_id}")
     GenServer.start_link(__MODULE__, game_id, name: via_tuple(game_id))
   end
 
@@ -39,8 +40,8 @@ defmodule Callbreak.GameServer do
   end
 
   @impl true
-  def handle_cast({:bid, player, bid}, %{game: game} = state) do
-    IO.inspect({player, bid}, label: "bid")
+  def handle_cast({:bid, player, bid} = msg, %{game: game} = state) do
+    Logger.info("#{inspect(msg)}")
 
     state =
       game
@@ -51,8 +52,8 @@ defmodule Callbreak.GameServer do
   end
 
   @impl true
-  def handle_call({:join, player}, _self, %{game: game} = state) do
-    IO.inspect("join #{inspect(player)}")
+  def handle_call({:join, player} = msg, _self, %{game: game} = state) do
+    Logger.info("#{inspect(msg)}")
 
     state =
       game
@@ -64,7 +65,7 @@ defmodule Callbreak.GameServer do
 
   @impl true
   def handle_info(:kill_self, state) do
-    Logger.warning("shutting down game_server: #{state.game.game_id}")
+    Logger.info("shutting down game_server: #{state.game.game_id}")
     {:stop, :normal, state}
   end
 
@@ -73,7 +74,7 @@ defmodule Callbreak.GameServer do
     Logger.info("#{inspect(msg)}")
 
     if timer == state.timer do
-      Logger.warning("timeout- timer: #{inspect(msg)} game_id: #{state.game.game_id}")
+      Logger.info("timeout- timer: #{inspect(msg)} game_id: #{state.game.game_id}")
 
       state =
         game
@@ -88,13 +89,13 @@ defmodule Callbreak.GameServer do
 
   @impl true
   def handle_info(msg, state) do
-    Logger.warning("unhandled handle_info msg: #{inspect(msg)}")
+    Logger.warning("UNHANDLED HANDLE_INFO msg: #{inspect(msg)}")
     {:noreply, state}
   end
 
   @impl true
   def terminate(reason, %{game: %{game_id: game_id}}) do
-    Logger.warning("Terminating game server #{game_id}. reason: #{inspect(reason)} ")
+    Logger.info("Terminating game server #{game_id}. reason: #{inspect(reason)} ")
     :ok
   end
 
@@ -126,12 +127,12 @@ defmodule Callbreak.GameServer do
   # and then set a new timer if the game is not completed
   # the timer will be handled in handled_info only when the currnet value of timer is equal to the timer value in message
   defp handle_instruction(state, {:notify_server, :success}) do
-    Logger.error("clearing timer: #{state.timer}")
+    Logger.info("clearing timer: #{state.timer}")
     timer = state.timer + 1
 
-    if Game.is_running?(state.game) do
+    if Game.running?(state.game) do
       Process.send_after(self(), {:timer, timer}, @timer_in_msec)
-      Logger.error("setting timer: #{timer}")
+      Logger.info("setting timer: #{timer}")
     end
 
     %{state | timer: timer}

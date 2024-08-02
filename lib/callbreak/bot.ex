@@ -1,5 +1,7 @@
 defmodule Callbreak.Player.Bot do
+  @moduledoc false
   use GenServer
+  use Callbreak.Constants
   alias Callbreak.{Application, GameServer, Player}
 
   require Logger
@@ -60,10 +62,9 @@ defmodule Callbreak.Player.Bot do
   def handle_cast(:play = msg, state) do
     Logger.info("#{inspect(state.player_id)}  #{inspect(msg)}")
     # sleeeping is mainly necessary when playing all four bots
-    # for some reason logger doesn't print all the messages 
+    # for some reason logger doesn't print all the messages
     # it is because of threshold limit of logger which is 500
-    # :timer.sleep(:rand.uniform(500))
-    :timer.sleep(500)
+    :timer.sleep(:rand.uniform(@bot_delay_in_msec))
     play_card = bot_play(state)
     GameServer.play(state.game_id, state.player_id, play_card)
     {:noreply, state}
@@ -81,8 +82,8 @@ defmodule Callbreak.Player.Bot do
   end
 
   def handle_cast({:winner, _winner} = msg, state) do
-    Logger.warning("#{inspect(state.player_id)}  #{inspect(msg)}")
-    Logger.warning("BOT #{inspect(state.player_id)} shutting down")
+    Logger.info("#{inspect(state.player_id)}  #{inspect(msg)}")
+    Logger.info("BOT #{inspect(state.player_id)} shutting down")
 
     {:stop, :normal, state}
   end

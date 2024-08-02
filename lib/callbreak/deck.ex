@@ -1,7 +1,8 @@
 defmodule Callbreak.Deck do
+  @moduledoc false
   use Callbreak.Constants
 
-  def new() do
+  def new do
     @suites
     |> Enum.flat_map(fn suit ->
       Enum.map(@ranks, fn rank -> {rank, suit} end)

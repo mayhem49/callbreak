@@ -4,8 +4,8 @@ defmodule Callbreak.Application do
   @moduledoc false
   alias Callbreak.GameServer
   alias Callbreak.GameTracker
-  alias Callbreak.PlayerSupervisor
   alias Callbreak.Player
+  alias Callbreak.PlayerSupervisor
 
   use Application
 
@@ -52,7 +52,7 @@ defmodule Callbreak.Application do
     Registry.register(Callbreak.Registry, name, pid)
   end
 
-  def play_bots() do
+  def play_bots do
     # todo this will leave the existing game, if any, with incomplete players
     :ok = GameTracker.renew_game()
     {:ok, game_id} = GameTracker.create_or_get_game()

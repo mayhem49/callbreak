@@ -2,7 +2,7 @@ defmodule Callbreak.Hand do
   @moduledoc """
   This module keeps track of the hand being played
   """
-  alias Callbreak.{Deck, Trick, AutoPlay}
+  alias Callbreak.{AutoPlay, Deck, Trick}
 
   defstruct [
     # reamining cards of each player
@@ -31,8 +31,7 @@ defmodule Callbreak.Hand do
 
   def deal(%__MODULE__{} = hand, [_, _, _, _] = players) do
     card_chunks =
-      Callbreak.Deck.new()
-      |> Deck.distribute(length(players))
+      Deck.distribute(Callbreak.Deck.new(), length(players))
 
     cards = Enum.zip(players, card_chunks) |> Map.new()
 
@@ -130,18 +129,18 @@ defmodule Callbreak.Hand do
     end
   end
 
-  def is_bidding_completed?(hand) do
+  def bidding_completed?(hand) do
     hand.hand_state == :playing
   end
 
-  def is_hand_completed?(hand) do
+  def hand_completed?(hand) do
     # OR check hand.cards is empty or not?
     total_hand = Enum.reduce(hand.tricks, 0, fn {_, trick}, acc -> acc + trick end)
     total_hand == 13
   end
 
   def maybe_hand_completed(hand) do
-    if is_hand_completed?(hand) do
+    if hand_completed?(hand) do
       Enum.reduce(hand.bids, %{}, fn {player, bid}, acc ->
         trick_won = Map.get(hand.tricks, player, 0)
 

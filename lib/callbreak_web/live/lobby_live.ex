@@ -1,10 +1,11 @@
 defmodule CallbreakWeb.LobbyLive do
   alias Callbreak.Card
-  alias Callbreak.GameTracker
-  alias Callbreak.PlayerSupervisor
   alias Callbreak.GameServer
+  alias Callbreak.GameTracker
   alias Callbreak.Player
   alias Callbreak.Player.Render
+  alias Callbreak.PlayerSupervisor
+
   require Logger
 
   use Callbreak.Constants
@@ -47,24 +48,27 @@ defmodule CallbreakWeb.LobbyLive do
     Logger.info("#{inspect(msg)}")
 
     {:noreply,
-     socket
-     |> assign(state: Player.add_opponents(socket.assigns.state, opponents))}
+     assign(socket,
+       state: Player.add_opponents(socket.assigns.state, opponents)
+     )}
   end
 
   def handle_cast({:new_player, new_player} = msg, socket) do
     Logger.info("#{inspect(msg)}")
 
     {:noreply,
-     socket
-     |> assign(state: Player.add_new_opponent(socket.assigns.state, new_player))}
+     assign(socket,
+       state: Player.add_new_opponent(socket.assigns.state, new_player)
+     )}
   end
 
   def handle_cast({:game_start, opponents} = msg, socket) do
     Logger.info("#{inspect(msg)}")
 
     {:noreply,
-     socket
-     |> assign(state: Player.set_opponents_final(socket.assigns.state, opponents))}
+     assign(socket,
+       state: Player.set_opponents_final(socket.assigns.state, opponents)
+     )}
   end
 
   def handle_cast({:cards, dealer, cards} = msg, socket) do
@@ -83,7 +87,7 @@ defmodule CallbreakWeb.LobbyLive do
   def handle_cast(:bid = msg, socket) do
     Logger.info("#{inspect(msg)}")
 
-    {:noreply, socket |> push_event("start-timer", %{timer: @timer_in_sec, id: @timer_el_id})}
+    {:noreply, push_event(socket, "start-timer", %{timer: @timer_in_sec, id: @timer_el_id})}
   end
 
   def handle_cast({:bid, player, bid} = msg, socket) do
@@ -99,7 +103,7 @@ defmodule CallbreakWeb.LobbyLive do
      |> assign(state: state)
      |> then(fn socket ->
        if socket.assigns.state.player_id == player,
-         do: socket |> put_flash(:info, "bid success"),
+         do: put_flash(socket, :info, "bid success"),
          else: socket
      end)}
   end
@@ -108,15 +112,16 @@ defmodule CallbreakWeb.LobbyLive do
     Logger.info("#{inspect(msg)}")
 
     {:noreply,
-     socket
-     |> assign(current_state: :playing)}
+     assign(socket,
+       current_state: :playing
+     )}
   end
 
   def handle_cast(:play = msg, socket) do
     Logger.info("#{inspect(msg)}")
 
     # timer is set after :play and :bid message
-    {:noreply, socket |> push_event("start-timer", %{timer: @timer_in_sec, id: @timer_el_id})}
+    {:noreply, push_event(socket, "start-timer", %{timer: @timer_in_sec, id: @timer_el_id})}
   end
 
   def handle_cast({:trick_winner, winner} = msg, socket) do
@@ -174,19 +179,21 @@ defmodule CallbreakWeb.LobbyLive do
 
   # handle-event
   def handle_event("navigate_home", _params, socket) do
-    Logger.warning("navigate_home")
+    Logger.info("navigate_home")
 
     {:noreply,
-     socket
-     |> push_navigate(to: ~p"/live")}
+     push_navigate(socket,
+       to: ~p"/live"
+     )}
   end
 
   def handle_event("hide_scorecard", _params, socket) do
-    Logger.warning("hide_scorecard")
+    Logger.info("hide_scorecard")
 
     {:noreply,
-     socket
-     |> assign(show_scorecard: false)}
+     assign(socket,
+       show_scorecard: false
+     )}
   end
 
   def handle_event("card_play", %{"card_index" => card_index} = _params, socket) do

@@ -1,7 +1,9 @@
 defmodule Callbreak.AutoPlay do
+  @moduledoc false
+
   use Callbreak.Constants
 
-  alias Callbreak.{Trick, Card}
+  alias Callbreak.{Card, Trick}
 
   def get_card(current_cards, %Trick{} = current_trick) do
     get_playable_cards(current_cards, current_trick)
@@ -13,6 +15,7 @@ defmodule Callbreak.AutoPlay do
     current_cards
   end
 
+  # todo: refactor this function
   def get_playable_cards(current_cards, current_trick) do
     start_suit = Trick.start_suit(current_trick)
 

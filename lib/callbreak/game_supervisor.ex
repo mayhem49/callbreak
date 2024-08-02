@@ -1,12 +1,14 @@
 defmodule Callbreak.GameDynamicSupervisor do
   use DynamicSupervisor
 
+  require Logger
+
   @moduledoc """
   This module supervises GameServers.
   """
 
   def start_link(init_args) do
-    IO.puts(__MODULE__)
+    Logger.info("starting #{__MODULE__}")
     DynamicSupervisor.start_link(__MODULE__, init_args, name: __MODULE__)
   end
 
@@ -35,7 +37,6 @@ defmodule Callbreak.PlayerSupervisor do
 
   def start_link(init_arg) do
     Process.info(self(), :current_stacktrace)
-    IO.inspect(__MODULE__)
     DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
 

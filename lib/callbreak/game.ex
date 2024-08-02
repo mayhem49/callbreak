@@ -48,7 +48,7 @@ defmodule Callbreak.Game do
   end
 
   # game is running when it is not waiting or completed
-  def is_running?(game) do
+  def running?(game) do
     cond do
       # waiting
       Enum.count(game.players) < 4 ->
@@ -162,8 +162,7 @@ defmodule Callbreak.Game do
           |> Enum.map(fn {pos, index} -> {Enum.at(game.players, index), pos} end)
           |> Enum.into(%{})
 
-        game
-        |> notify_player(player, {:game_start, opponents})
+        notify_player(game, player, {:game_start, opponents})
       end)
 
     # set dealer which will be shifted by one position in new_hand
@@ -185,7 +184,7 @@ defmodule Callbreak.Game do
   end
 
   # also notifies the dealer using same message to notify cards
-  defp deal(game = %__MODULE__{}) do
+  defp deal(%__MODULE__{} = game) do
     {hand, cards} = Hand.deal(game.current_hand, game.players)
 
     Enum.reduce(cards, %{game | current_hand: hand}, fn {player, cards}, acc_game ->
@@ -194,7 +193,7 @@ defmodule Callbreak.Game do
   end
 
   defp maybe_start_play(game) do
-    if Hand.is_bidding_completed?(game.current_hand),
+    if Hand.bidding_completed?(game.current_hand),
       do: game |> notify_to_all(:play_start) |> ask_current_player_to_play(),
       else: ask_current_player_to_bid(game)
   end
@@ -238,8 +237,7 @@ defmodule Callbreak.Game do
       |> notify_to_all({:winner, "random player for now"})
       |> notify_server(:game_completed)
     else
-      game
-      |> start_new_hand()
+      start_new_hand(game)
     end
   end
 
@@ -283,10 +281,12 @@ defmodule Callbreak.Game do
   end
 
   defp notify_except(game, except_player, instruction) do
-    Enum.reduce(game.players, game, fn player, game ->
-      unless player == except_player,
-        do: notify_player(game, player, instruction),
-        else: game
+    Enum.reduce(game.players, game, fn
+      ^except_player, game ->
+        game
+
+      player, game ->
+        notify_player(game, player, instruction)
     end)
   end
 

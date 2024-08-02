@@ -1,7 +1,8 @@
 defmodule Callbreak.Player do
+  @moduledoc false
   use Callbreak.Constants
+  alias Callbreak.{Application, AutoPlay, Deck, Trick}
   alias Callbreak.Player
-  alias Callbreak.{Application, Deck, Trick, AutoPlay}
 
   # todo maybe store opponents position in liveview since that is only related to rendering?
   defstruct [
@@ -173,8 +174,7 @@ defmodule Callbreak.Player.Render do
 
   # returns an array with card and postion to iterate to 
   def get_current_trick_cards(player) do
-    player.current_trick.cards
-    |> Enum.map(fn
+    Enum.map(player.current_trick.cards, fn
       {card_player, card} ->
         position = Map.get(player.opponents, card_player) || :bottom
 
@@ -195,8 +195,7 @@ defmodule Callbreak.Player.Render do
   end
 
   def get_scorecard(player) do
-    player.hand_scores
-    |> Enum.map(fn hand_score ->
+    Enum.map(player.hand_scores, fn hand_score ->
       [:left, :top, :right]
       |> Enum.map(fn pos ->
         opponent = Player.get_player_at_pos(player, pos)
