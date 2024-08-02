@@ -83,11 +83,6 @@ defmodule CallbreakWeb.LobbyLive do
   def handle_cast(:bid = msg, socket) do
     Logger.info("#{inspect(msg)}")
 
-    # todo handle player bidding here
-    # todo handle player bidding here
-    # todo handle player bidding here
-    # todo handle player bidding here
-    # todo handle player bidding here
     {:noreply, socket |> push_event("start-timer", %{timer: @timer, id: @timer_el_id})}
   end
 
@@ -119,11 +114,6 @@ defmodule CallbreakWeb.LobbyLive do
 
   def handle_cast(:play = msg, socket) do
     Logger.info("#{inspect(msg)}")
-
-    # todo handle play here
-    # todo handle play here
-    # todo handle play here
-    # todo handle play here
 
     # timer is set after :play and :bid message
     {:noreply, socket |> push_event("start-timer", %{timer: @timer, id: @timer_el_id})}

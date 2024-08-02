@@ -12,7 +12,6 @@ defmodule Callbreak.Game do
   Maybe add :current_state key in struct?
   """
 
-  # TODO: add game_state. see module_doc
   defstruct [
     :game_id,
     :players,

@@ -74,8 +74,7 @@ defmodule Callbreak.GameServer do
 
     if timer == state.timer do
       Logger.warning("timeout- timer: #{inspect(msg)} game_id: #{state.game.game_id}")
-      Logger.warning("auto play")
-      # todo autoplay
+
       state =
         game
         |> Game.handle_autoplay()
