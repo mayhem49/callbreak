@@ -3,7 +3,7 @@ defmodule Callbreak.GameServer do
   alias Callbreak.{Game, Player}
   require Logger
   # in milliseconds
-  @timer 5 * 1000
+  use Callbreak.Constants
 
   def start_link(game_id) do
     IO.puts("starting_game: #{game_id}")
@@ -130,7 +130,7 @@ defmodule Callbreak.GameServer do
     timer = state.timer + 1
 
     if Game.is_running?(state.game) do
-      Process.send_after(self(), {:timer, timer}, @timer)
+      Process.send_after(self(), {:timer, timer}, @timer_in_msec)
       Logger.error("setting timer: #{timer}")
     end
 

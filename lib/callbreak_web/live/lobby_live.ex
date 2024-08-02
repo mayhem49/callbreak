@@ -7,10 +7,10 @@ defmodule CallbreakWeb.LobbyLive do
   alias Callbreak.Player.Render
   require Logger
 
+  use Callbreak.Constants
+
   @timer_el_id "timer"
   # in seconds
-  @timer 5
-
   use CallbreakWeb, :live_view
   # current_state: :waiting | :bidding | :playing | :completed
   # :waiting | :playing -> :bidding, when {:cards, dealer, cards is received
@@ -83,7 +83,7 @@ defmodule CallbreakWeb.LobbyLive do
   def handle_cast(:bid = msg, socket) do
     Logger.info("#{inspect(msg)}")
 
-    {:noreply, socket |> push_event("start-timer", %{timer: @timer, id: @timer_el_id})}
+    {:noreply, socket |> push_event("start-timer", %{timer: @timer_in_sec, id: @timer_el_id})}
   end
 
   def handle_cast({:bid, player, bid} = msg, socket) do
@@ -116,7 +116,7 @@ defmodule CallbreakWeb.LobbyLive do
     Logger.info("#{inspect(msg)}")
 
     # timer is set after :play and :bid message
-    {:noreply, socket |> push_event("start-timer", %{timer: @timer, id: @timer_el_id})}
+    {:noreply, socket |> push_event("start-timer", %{timer: @timer_in_sec, id: @timer_el_id})}
   end
 
   def handle_cast({:trick_winner, winner} = msg, socket) do
@@ -167,7 +167,7 @@ defmodule CallbreakWeb.LobbyLive do
   end
 
   # handle_info
-  # this is called after @timer seconds
+  # this is called after @timer_in_sec seconds
   # if there have been no move by the player 
   # maybe do it in genserver
   # handle it 

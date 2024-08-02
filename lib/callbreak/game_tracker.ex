@@ -44,6 +44,7 @@ defmodule Callbreak.GameTracker do
     {:reply, {:ok, game_id}, state}
   end
 
+  # private functions
   defp create_or_get_game(%{game_id: nil}) do
     game_id = random_game_id()
     {:ok, _pid} = GameDynamicSupervisor.start_game(game_id)
