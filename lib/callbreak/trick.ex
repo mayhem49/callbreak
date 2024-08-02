@@ -1,4 +1,6 @@
 defmodule Callbreak.Trick do
+  use Callbreak.Constants
+
   alias Callbreak.Card
   alias Callbreak.Player
 

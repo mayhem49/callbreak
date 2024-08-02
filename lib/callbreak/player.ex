@@ -1,4 +1,5 @@
 defmodule Callbreak.Player do
+  use Callbreak.Constants
   alias Callbreak.Player
   alias Callbreak.{GameServer, Card, Application, Deck, Trick, AutoPlay}
 
@@ -16,7 +17,6 @@ defmodule Callbreak.Player do
     :hand_scores
   ]
 
-  @trump_suit :spade
   @player_id_len 4
 
   def new(player_id, game_id) do
@@ -33,7 +33,6 @@ defmodule Callbreak.Player do
   end
 
   def get_player_id_len(), do: @player_id_len
-  def get_trump_suit(), do: @trump_suit
 
   def random_player_id() do
     MnemonicSlugs.generate_slug(2)
