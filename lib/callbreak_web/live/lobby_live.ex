@@ -162,7 +162,7 @@ defmodule CallbreakWeb.LobbyLive do
      |> assign(state: Player.handle_scorecard(socket.assigns.state, hand_score, total_score))}
   end
 
-  def handle_cast({:winner, winner} = msg, socket) do
+  def handle_cast({:winner, _winner} = msg, socket) do
     Logger.info("#{inspect(msg)}")
 
     {:noreply,
@@ -183,7 +183,7 @@ defmodule CallbreakWeb.LobbyLive do
   # handle it 
 
   # handle-event
-  def handle_event("navigate_home", params, socket) do
+  def handle_event("navigate_home", _params, socket) do
     Logger.warning("navigate_home")
 
     {:noreply,
@@ -191,7 +191,7 @@ defmodule CallbreakWeb.LobbyLive do
      |> push_navigate(to: ~p"/live")}
   end
 
-  def handle_event("hide_scorecard", params, socket) do
+  def handle_event("hide_scorecard", _params, socket) do
     Logger.warning("hide_scorecard")
 
     {:noreply,
@@ -199,7 +199,7 @@ defmodule CallbreakWeb.LobbyLive do
      |> assign(show_scorecard: false)}
   end
 
-  def handle_event("card_play", %{"card_index" => card_index} = params, socket) do
+  def handle_event("card_play", %{"card_index" => card_index} = _params, socket) do
     %{game_id: game_id, player_id: player_id} = socket.assigns.state
 
     card_index = String.to_integer(card_index)
@@ -295,7 +295,7 @@ defmodule CallbreakWeb.LobbyLive do
       <%= for {player, position} <- @state.opponents do %>
         <%= player(assigns, player, position) %>
         <div class={"card_area opponent card_area-#{position}"}>
-          <%= for {_,i} <- Enum.with_index(@current_cards) do %>
+          <%= for {_,_i} <- Enum.with_index(@current_cards) do %>
             <div>c</div>
           <% end %>
         </div>

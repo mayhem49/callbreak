@@ -1,7 +1,7 @@
 defmodule Callbreak.AutoPlay do
   use Callbreak.Constants
 
-  alias Callbreak.{Trick, Player, Card}
+  alias Callbreak.{Trick, Card}
 
   def get_card(current_cards, %Trick{} = current_trick) do
     get_playable_cards(current_cards, current_trick)
@@ -15,16 +15,15 @@ defmodule Callbreak.AutoPlay do
 
   def get_playable_cards(current_cards, current_trick) do
     start_suit = Trick.start_suit(current_trick)
-    trump_suit = Player.get_trump_suit()
 
     grouped_cards = Enum.group_by(current_cards, fn {_, suit} -> suit end)
     current_trick_cards = Enum.map(current_trick.cards, fn {_, card} -> card end)
 
     trump_suit_played? =
-      start_suit != trump_suit and
+      start_suit != @trump_suit and
         Enum.any?(
           current_trick_cards,
-          fn {_, suit} -> suit == trump_suit end
+          fn {_, suit} -> suit == @trump_suit end
         )
 
     case Map.fetch(grouped_cards, start_suit) do
@@ -43,10 +42,10 @@ defmodule Callbreak.AutoPlay do
         end
 
       :error ->
-        case Map.fetch(grouped_cards, trump_suit) do
+        case Map.fetch(grouped_cards, @trump_suit) do
           {:ok, trump_cards} ->
             if trump_suit_played? do
-              max_trump_card = get_max_card_of_suit(current_trick_cards, trump_suit)
+              max_trump_card = get_max_card_of_suit(current_trick_cards, @trump_suit)
 
               max_trump_cards =
                 Enum.filter(trump_cards, fn card ->

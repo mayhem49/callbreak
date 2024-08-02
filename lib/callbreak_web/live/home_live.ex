@@ -1,7 +1,6 @@
 defmodule CallbreakWeb.HomeLive do
   require Logger
   use CallbreakWeb, :live_view
-  alias Phoenix.LiveView.JS
 
   alias Callbreak.{GameTracker, Player}
 

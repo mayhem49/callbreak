@@ -1,6 +1,6 @@
 defmodule Callbreak.Player.Bot do
   use GenServer
-  alias Callbreak.{Application, GameServer, Player, Card, Trick}
+  alias Callbreak.{Application, GameServer, Player}
 
   require Logger
 

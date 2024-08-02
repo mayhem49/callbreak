@@ -19,7 +19,7 @@ defmodule Callbreak.MixProject do
   def application do
     [
       mod: {Callbreak.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :observer, :wx]
     ]
   end
 

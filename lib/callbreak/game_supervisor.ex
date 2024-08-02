@@ -4,7 +4,6 @@ defmodule Callbreak.GameDynamicSupervisor do
   @moduledoc """
   This module supervises GameServers.
   """
-  alias Callbreak.GameServer
 
   def start_link(init_args) do
     IO.puts(__MODULE__)

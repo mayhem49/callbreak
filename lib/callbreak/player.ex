@@ -1,7 +1,7 @@
 defmodule Callbreak.Player do
   use Callbreak.Constants
   alias Callbreak.Player
-  alias Callbreak.{GameServer, Card, Application, Deck, Trick, AutoPlay}
+  alias Callbreak.{Application, Deck, Trick, AutoPlay}
 
   # todo maybe store opponents position in liveview since that is only related to rendering?
   defstruct [
@@ -139,7 +139,7 @@ defmodule Callbreak.Player do
   end
 
   def get_winner(player) do
-    {player, score} = Enum.max_by(player.scorecard, fn {player, score} -> score end)
+    {player, _score} = Enum.max_by(player.scorecard, fn {_player, score} -> score end)
     player
   end
 
@@ -191,7 +191,7 @@ defmodule Callbreak.Player.Render do
 
     player.cards
     |> Enum.with_index()
-    |> Enum.map(fn {{_rank, suit} = card, index} ->
+    |> Enum.map(fn {{_rank, _suit} = card, index} ->
       can_play? = Enum.member?(playable_cards, card)
 
       {index, card, can_play?}

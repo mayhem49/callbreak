@@ -2,7 +2,7 @@ defmodule Callbreak.Hand do
   @moduledoc """
   This module keeps track of the hand being played
   """
-  alias Callbreak.{Deck, Card, Trick, AutoPlay}
+  alias Callbreak.{Deck, Trick, AutoPlay}
 
   defstruct [
     # reamining cards of each player

@@ -44,13 +44,6 @@ defmodule Callbreak.Application do
     :ok
   end
 
-  def observe() do
-    Mix.ensure_application!(:wx)
-    Mix.ensure_application!(:runtime_tools)
-    Mix.ensure_application!(:observer)
-    :observer.start()
-  end
-
   def via_tuple(service_id) do
     {:via, Registry, {Callbreak.Registry, service_id}}
   end

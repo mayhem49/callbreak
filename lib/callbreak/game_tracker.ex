@@ -1,6 +1,4 @@
 defmodule Callbreak.GameTracker do
-  alias Callbreak.Player
-  alias Callbreak.GameServer
   alias Callbreak.GameDynamicSupervisor
 
   require Logger
