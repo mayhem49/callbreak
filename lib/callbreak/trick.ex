@@ -6,7 +6,7 @@ defmodule Callbreak.Trick do
 
   # currently for use by player
   defstruct [
-    # suit that is played at first 
+    # suit that is played at first
     :start_suit,
     :cards,
     :winner
@@ -14,7 +14,7 @@ defmodule Callbreak.Trick do
     # :current_winner
   ]
 
-  def new() do
+  def new do
     %__MODULE__{
       start_suit: nil,
       cards: %{},
@@ -37,7 +37,23 @@ defmodule Callbreak.Trick do
     }
   end
 
+  # this is kind of getter since the implementation may change
   def start_suit(%__MODULE__{start_suit: start_suit}), do: start_suit
+
+  def cards(%__MODULE__{cards: cards}), do: cards
+
+  @doc """
+  This returns true when the @trump_suit is played as trump card not as suit card
+  """
+  def trump_suit_played?(%__MODULE__{} = trick) do
+    %{cards: cards, start_suit: start_suit} = trick
+
+    start_suit != @trump_suit and
+      Enum.any?(
+        cards,
+        fn {_, suit} -> suit == @trump_suit end
+      )
+  end
 
   def winner(%__MODULE__{winner: winner}) do
     winner

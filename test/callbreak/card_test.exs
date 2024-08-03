@@ -84,8 +84,8 @@ defmodule CardTest do
     end)
 
     # test invalid ranks
-    # Enum.random(11..10000, fn rank -> 
-    # assertRaise 
+    # Enum.random(11..10000, fn rank ->
+    # assertRaise
     # end)
   end
 end

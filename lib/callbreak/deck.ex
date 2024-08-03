@@ -10,11 +10,11 @@ defmodule Callbreak.Deck do
     |> Enum.shuffle()
   end
 
-  def get_random_cards() do
+  def get_random_cards do
     Enum.take_random(new(), 13)
   end
 
-  def random() do
+  def random do
     {Enum.random(@ranks), Enum.random(@suites)}
   end
 

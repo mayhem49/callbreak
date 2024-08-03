@@ -14,11 +14,11 @@ defmodule Callbreak.GameTracker do
     GenServer.start_link(__MODULE__, init_arg, name: Callbreak.GameTracker)
   end
 
-  def create_or_get_game() do
+  def create_or_get_game do
     GenServer.call(__MODULE__, :create_or_get_game)
   end
 
-  def renew_game() do
+  def renew_game do
     GenServer.call(__MODULE__, :renew_game)
   end
 
@@ -57,7 +57,7 @@ defmodule Callbreak.GameTracker do
     game_id
   end
 
-  def random_game_id() do
+  def random_game_id do
     id =
       1..@game_id_len
       |> Enum.map(fn _ -> Enum.random(?a..?z) end)

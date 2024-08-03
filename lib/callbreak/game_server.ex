@@ -114,7 +114,7 @@ defmodule Callbreak.GameServer do
   end
 
   defp handle_instruction(state, {:notify_server, :game_completed}) do
-    # since the handler for this message will be run only after 
+    # since the handler for this message will be run only after
     # the current message execution is completed, this should be fine
     # bot will kill when they receive {:winner,winner} message
     Process.send(self(), :kill_self, [:noconnect])
@@ -123,9 +123,9 @@ defmodule Callbreak.GameServer do
 
   # maybe ok tuple was better for tthis anyway
   # After every success operation, current_player will be asked to do something unless the game is completed
-  # so updating the current timer value will invalidate the current timer message 
+  # so updating the current timer value will invalidate the current timer message
   # and then set a new timer if the game is not completed
-  # the timer will be handled in handled_info only when the currnet value of timer is equal to the timer value in message
+  # the timer will be handled in handled_info if the timer hasnot been cleared(incremented)
   defp handle_instruction(state, {:notify_server, :success}) do
     Logger.info("clearing timer: #{state.timer}")
     timer = state.timer + 1

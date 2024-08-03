@@ -14,12 +14,12 @@ defmodule Callbreak.Hand do
     :current_trick,
     # bidding done by the players
     :bids,
-    # dealing -> bidding -> playing 
+    # dealing -> bidding -> playing
     :hand_state
   ]
 
   # cards is the list of player and card
-  def new() do
+  def new do
     %__MODULE__{
       cards: %{},
       tricks: %{},
@@ -81,7 +81,7 @@ defmodule Callbreak.Hand do
   # index -> index of card in player's card
   # else: {:error, reason}
 
-  # todo: 
+  # todo:
   # see rules about restriction in playing spade if player donot have card of current suit
   # restrict playing smaller cards if bigger cards available
   defp validate_card_play(hand, player, play_card) do
@@ -159,13 +159,13 @@ defmodule Callbreak.Hand do
   end
 
   def auto_play(%{hand_state: :playing} = hand, player) do
-    {:card, AutoPlay.get_card(Map.get(hand.cards, player), hand.current_trick)}
+    {:card, AutoPlay.get_playable_card(Map.get(hand.cards, player), hand.current_trick)}
   end
 end
 
 # there are four players
-# each player is served 13 cards at the start of the game. 
-# There are five rounds 
+# each player is served 13 cards at the start of the game.
+# There are five rounds
 # at each round, players play 13 rounds
 
 # card is dealt

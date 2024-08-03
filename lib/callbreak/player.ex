@@ -23,6 +23,7 @@ defmodule Callbreak.Player do
       game_id: game_id,
       player_id: player_id,
       opponents: %{},
+      # todo: maybe store cards after grouping by suits?
       cards: [],
       current_trick: Trick.new(),
       current_hand: %{},
@@ -31,7 +32,7 @@ defmodule Callbreak.Player do
     }
   end
 
-  def random_player_id() do
+  def random_player_id do
     MnemonicSlugs.generate_slug(2) <> Integer.to_string(:rand.uniform(999) * -1)
   end
 
@@ -140,19 +141,6 @@ defmodule Callbreak.Player do
     player
   end
 
-  @doc """
-  contains card of start suit -> 
-  ---- if trump is not played -> play winning || any of start suit
-  ---- else if trump is played -> play any of start suit
-
-  doesnot contains card of start suit ->
-  ---- if trump is not played -> play trump || play any
-  ---- if trump is played -> play winning trump || play any
-  ---- if play winning trump || play any
-  ---- contains trump suit ->
-  -------- if trump is played -> play winning trump || play any
-  -------- if trump is not played -> play any
-  """
   def get_playable_cards(player) do
     AutoPlay.get_playable_cards(player.cards, player.current_trick)
   end
@@ -172,7 +160,7 @@ defmodule Callbreak.Player.Render do
     end
   end
 
-  # returns an array with card and postion to iterate to 
+  # returns an array with card and postion to iterate to
   def get_current_trick_cards(player) do
     Enum.map(player.current_trick.cards, fn
       {card_player, card} ->

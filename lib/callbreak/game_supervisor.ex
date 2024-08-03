@@ -32,7 +32,7 @@ defmodule Callbreak.PlayerSupervisor do
   use DynamicSupervisor
 
   # But the players may leave and join the game as wish.
-  # Each PlayerSupervisor is associated with a game. 
+  # Each PlayerSupervisor is associated with a game.
   # When the game terminates, the supervisor also terminates.
 
   def start_link(init_arg) do

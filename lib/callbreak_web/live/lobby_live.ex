@@ -173,9 +173,9 @@ defmodule CallbreakWeb.LobbyLive do
 
   # handle_info
   # this is called after @timer_in_sec seconds
-  # if there have been no move by the player 
+  # if there have been no move by the player
   # maybe do it in genserver
-  # handle it 
+  # handle it
 
   # handle-event
   def handle_event("navigate_home", _params, socket) do
@@ -421,7 +421,7 @@ defmodule CallbreakWeb.LobbyLive do
     """
   end
 
-  def loading(assigns) do
+  def loading(_assigns) do
     ~H"""
     <div role="status">
       <svg

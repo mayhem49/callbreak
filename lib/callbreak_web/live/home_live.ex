@@ -31,7 +31,7 @@ defmodule CallbreakWeb.HomeLive do
      |> assign(player_id_length: @player_id_len)}
   end
 
-  def render(assigns) do
+  def render(_assigns) do
     ~H"""
     <div class="container">
       <h1>Welcome to Game Name</h1>

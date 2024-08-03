@@ -50,7 +50,8 @@ defmodule Callbreak.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:mnemonic_slugs, "~> 0.0.3"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:recode, "~> 0.7", only: :dev}
+      {:recode, "~> 0.7", only: :dev},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
   end
 
