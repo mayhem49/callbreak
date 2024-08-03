@@ -5,7 +5,7 @@
   # With "--dry" no changes will be written to the files.
   # Can also be set/reset with `--dry`/`--no-dry`.
   # If dry is true then verbose is also active.
-  dry: false,
+  dry: true,
   # Enables or disables color in the output.
   color: true,
   # Can also be set/reset with `--verbose`/`--no-verbose`.
@@ -34,6 +34,7 @@
     # {Recode.Task.TagTODO, [exit_code: 4]},
     {Recode.Task.TestFileExt, []},
     {Recode.Task.UnnecessaryIfUnless, []},
-    {Recode.Task.UnusedVariable, [active: true]}
+    # problem with phoenix assigns
+    {Recode.Task.UnusedVariable, [active: false]}
   ]
 ]

@@ -50,7 +50,7 @@ defmodule Callbreak.AutoPlay do
   # private functions
   defp get_playable_suit_cards(grouped_cards, %Trick{} = current_trick) do
     start_suit = Trick.start_suit(current_trick)
-    trick_cards = Trick.cards(current_trick)
+    trick_cards = current_trick |> Trick.cards() |> Enum.map(fn {_, card} -> card end)
     trump_suit_played? = Trick.trump_suit_played?(current_trick)
 
     case Map.get(grouped_cards, start_suit) do
@@ -61,6 +61,10 @@ defmodule Callbreak.AutoPlay do
         suit_cards
 
       suit_cards ->
+        IO.inspect(trick_cards)
+        IO.inspect(trick_cards)
+        IO.inspect(start_suit)
+        IO.inspect(start_suit)
         max_suit_card = get_max_card_of_suit(trick_cards, start_suit)
         greater_cards = get_greater_cards(suit_cards, max_suit_card)
         if Enum.empty?(greater_cards), do: suit_cards, else: greater_cards
@@ -68,7 +72,7 @@ defmodule Callbreak.AutoPlay do
   end
 
   defp get_playable_trump_cards(grouped_cards, %Trick{} = current_trick) do
-    trick_cards = Trick.cards(current_trick)
+    trick_cards = current_trick |> Trick.cards() |> Enum.map(fn {_, card} -> card end)
     trump_suit_played? = Trick.trump_suit_played?(current_trick)
 
     case Map.get(grouped_cards, @trump_suit) do

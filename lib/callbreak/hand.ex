@@ -46,7 +46,7 @@ defmodule Callbreak.Hand do
   end
 
   def take_bid(%{hand_state: :bidding}, _, bid), do: {:error, {:invalid_bid, bid}}
-  def take_bid(_, _, _), do: {:error, {:not_bidding_currently}}
+  def take_bid(_, _, _), do: {:error, :not_bidding_currently}
 
   def play(%{hand_state: :playing} = hand, player, play_card) do
     case validate_card_play(hand, player, play_card) do
@@ -70,74 +70,7 @@ defmodule Callbreak.Hand do
     end
   end
 
-  def play(_, _, _), do: {:error, {:not_playing_currently}}
-
-  # checks if the `card` player wants to play is valid.
-  # It is invalid in following case:
-  # = Player donot have that card
-  # = Played another suit card despite having card of current suit
-
-  # If valid: {:ok, index}
-  # index -> index of card in player's card
-  # else: {:error, reason}
-
-  # todo:
-  # see rules about restriction in playing spade if player donot have card of current suit
-  # restrict playing smaller cards if bigger cards available
-  defp validate_card_play(hand, player, play_card) do
-    card_index =
-      hand.cards
-      |> Map.get(player)
-      |> Enum.find_index(fn card -> card == play_card end)
-
-    if card_index do
-      curr_suit = Trick.start_suit(hand.current_trick)
-      {_play_rank, play_suit} = play_card
-
-      if !curr_suit || play_suit == curr_suit ||
-           !contains_card_of_same_suit?(hand, player, curr_suit) do
-        {:ok, card_index}
-      else
-        {:error, {:invalid_play_card, play_card}}
-      end
-    else
-      {:error, {:non_existent_card, play_card}}
-    end
-  end
-
-  # returns if the player contains card of `suit` suit
-  defp contains_card_of_same_suit?(hand, player, suit) do
-    hand.cards
-    |> Map.get(player)
-    |> Enum.any?(fn
-      {_, ^suit} -> true
-      _ -> false
-    end)
-  end
-
-  defp maybe_find_trick_winner(hand) do
-    if Enum.count(hand.current_trick.cards) == 4 do
-      {winner, _card} = Trick.winner(hand.current_trick)
-
-      {%{
-         hand
-         | current_trick: Trick.new(),
-           tricks: Map.update(hand.tricks, winner, 1, &(&1 + 1))
-       }, winner}
-    else
-      {hand, nil}
-    end
-  end
-
-  def bidding_completed?(hand) do
-    hand.hand_state == :playing
-  end
-
-  def hand_completed?(hand) do
-    # OR check hand.cards is empty or not?
-    total_hand = Enum.reduce(hand.tricks, 0, fn {_, trick}, acc -> acc + trick end)
-    total_hand == 13
-  end
+  def play(_, _, _), do: {:error, :not_playing_currently}
 
   def maybe_hand_completed(hand) do
     if hand_completed?(hand) do
@@ -161,14 +94,48 @@ defmodule Callbreak.Hand do
   def auto_play(%{hand_state: :playing} = hand, player) do
     {:card, AutoPlay.get_playable_card(Map.get(hand.cards, player), hand.current_trick)}
   end
+
+  def bidding_completed?(hand) do
+    hand.hand_state == :playing
+  end
+
+  # private functions
+  defp validate_card_play(hand, player, card) do
+    current_cards = Map.get(hand.cards, player)
+    card_index = Enum.find_index(current_cards, fn curr_card -> curr_card == card end)
+
+    if card_index do
+      playable_cards = AutoPlay.get_playable_cards(current_cards, hand.current_trick)
+
+      if card in playable_cards,
+        do: {:ok, card_index},
+        else: {:error, {:invalid_play_card, card}}
+    else
+      {:error, {:non_existent_card, card}}
+    end
+  end
+
+  defp maybe_find_trick_winner(hand) do
+    case hand.current_trick |> Trick.cards() |> Enum.count() do
+      4 ->
+        {winner, _card} = Trick.winner(hand.current_trick)
+
+        hand = %{
+          hand
+          | current_trick: Trick.new(),
+            tricks: Map.update(hand.tricks, winner, 1, &(&1 + 1))
+        }
+
+        {hand, winner}
+
+      _ ->
+        {hand, nil}
+    end
+  end
+
+  defp hand_completed?(hand) do
+    # OR check hand.cards is empty or not?
+    total_hand = Enum.reduce(hand.tricks, 0, fn {_, trick}, acc -> acc + trick end)
+    total_hand == 13
+  end
 end
-
-# there are four players
-# each player is served 13 cards at the start of the game.
-# There are five rounds
-# at each round, players play 13 rounds
-
-# card is dealt
-# bidding
-# bidding happens turn by turn
-# playing

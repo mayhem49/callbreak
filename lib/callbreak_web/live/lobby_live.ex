@@ -421,7 +421,7 @@ defmodule CallbreakWeb.LobbyLive do
     """
   end
 
-  def loading(_assigns) do
+  def loading(assigns) do
     ~H"""
     <div role="status">
       <svg
