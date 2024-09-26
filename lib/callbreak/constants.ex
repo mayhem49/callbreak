@@ -14,6 +14,8 @@ defmodule Callbreak.Constants do
       @game_id_len 6
 
       @bot_delay_in_msec 5 * 1000
+
+      @autoplay false
     end
   end
 end

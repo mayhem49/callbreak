@@ -69,21 +69,25 @@ defmodule Callbreak.GameServer do
     {:stop, :normal, state}
   end
 
-  @impl true
+
   def handle_info({:timer, timer} = msg, %{game: game} = state) do
     Logger.info("#{inspect(msg)}")
 
-    if timer == state.timer do
-      Logger.info("timeout- timer: #{inspect(msg)} game_id: #{state.game.game_id}")
+    case @autoplay do
+      false -> if timer == state.timer do
+        Logger.info("timeout- timer: #{inspect(msg)} game_id: #{state.game.game_id}")
 
-      state =
-        game
-        |> Game.handle_autoplay()
-        |> handle_game_instructions(state)
+        state =
+          game
+          |> Game.handle_autoplay()
+          |> handle_game_instructions(state)
 
-      {:noreply, state}
-    else
-      {:noreply, state}
+        {:noreply, state}
+      else
+        {:noreply, state}
+      end
+      true -> 
+        {:noreply, state}
     end
   end
 

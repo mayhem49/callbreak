@@ -18,6 +18,7 @@ defmodule CallbreakWeb.Router do
     pipe_through(:browser)
     live("/live", HomeLive)
     live("/lobby/:game_id", LobbyLive)
+    live("/test", TestLive)
 
     get("/", PageController, :home)
   end
