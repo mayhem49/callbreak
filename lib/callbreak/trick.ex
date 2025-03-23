@@ -5,7 +5,7 @@ defmodule Callbreak.Trick do
   alias Callbreak.Card
 
   # currently for use by player
-  defstruct [
+  @enforce_keys [
     # suit that is played at first
     :start_suit,
     :cards,
@@ -13,6 +13,10 @@ defmodule Callbreak.Trick do
     # winner till now {player, card}
     # :current_winner
   ]
+
+  defstruct @enforce_keys
+
+  alias __MODULE__, as: T
 
   def new do
     %__MODULE__{

@@ -9,10 +9,10 @@ defmodule Callbreak.Game do
   and playing is started.
 
   After the game is completed, it is in :completed state.
-  Maybe add :current_state key in struct?
+  Maybe add :game_state key in struct?
   """
 
-  defstruct [
+  @enforce_keys [
     :game_id,
     :players,
     # tracks the current hand being played(all tricks and call and individual players' cards)
@@ -23,46 +23,36 @@ defmodule Callbreak.Game do
     :current_player,
     # points table  of the game
     :scorecard,
-    :instructions
+    :instructions,
+    :game_state
   ]
 
-  # todo don't allow same player to be joined twice
+  defstruct @enforce_keys
 
-  # joining
-  # playiing
-  # end
+  alias __MODULE__, as: G
 
   require Logger
   alias Callbreak.Hand
 
   def new(game_id) do
-    %__MODULE__{
+    %G{
       game_id: game_id,
       players: [],
       current_hand: nil,
       dealer: nil,
       current_player: nil,
       scorecard: [],
-      instructions: []
+      instructions: [],
+      game_state: :waiting
     }
   end
 
   # game is running when it is not waiting or completed
-  def running?(game) do
-    cond do
-      # waiting
-      Enum.count(game.players) < 4 ->
-        false
+  def running?(%G{game_state: :playing}), do: true
+  def running?(%G{}), do: false
 
-      # completed
-      Enum.count(game.scorecard) == 5 ->
-        false
-
-      true ->
-        true
-    end
-  end
-
+  # todo don't allow same player to be joined twice
+  # todo: use :game_state instead of guard
   def join_game(%{players: players} = game, player_id)
       when length(players) < 4 do
     %{game | players: [player_id | players]}
@@ -87,7 +77,7 @@ defmodule Callbreak.Game do
         |> Map.put(:current_hand, hand)
         |> notify_to_all({:bid, player, bid})
         |> rotate_current_player()
-        |> maybe_start_play()
+        |> maybe_start_hand_play()
         |> notify_server(:success)
         |> return_instructions_and_game()
 
@@ -145,6 +135,7 @@ defmodule Callbreak.Game do
 
   # starts game after joining process is completed
   # also starts bidding process
+  # todo: use :game_state in place of guard
   defp maybe_start_game(%{players: players} = game) when length(players) == 4 do
     game =
       game.players
@@ -162,6 +153,7 @@ defmodule Callbreak.Game do
           |> Enum.map(fn {pos, index} -> {Enum.at(game.players, index), pos} end)
           |> Enum.into(%{})
 
+        # todo: more simple way of managing cyclic order of players?
         notify_player(game, player, {:game_start, opponents})
       end)
 
@@ -174,7 +166,7 @@ defmodule Callbreak.Game do
 
   defp start_new_hand(game) do
     # below code means:
-    # randomly chose dealer in `new` will be shifted by one
+    # randomly chose dealer in `new` will be shifted by one in cyclic order
     dealer = get_next_player(game, game.dealer)
     current_player = get_next_player(game, dealer)
 
@@ -192,7 +184,7 @@ defmodule Callbreak.Game do
     end)
   end
 
-  defp maybe_start_play(game) do
+  defp maybe_start_hand_play(game) do
     if Hand.bidding_completed?(game.current_hand),
       do: game |> notify_to_all(:play_start) |> ask_current_player_to_play(),
       else: ask_current_player_to_bid(game)
@@ -309,10 +301,21 @@ defmodule Callbreak.Game do
   end
 end
 
+# revisit
+# - join
+# - bid
+# - play
+
 # todo
 # decide whether to use call or cast for player actions?
 # manage leaving of players between game
 # manage opponents posisiton in only one place
+
+# to player
+# :opponents notify the player of the current opponents in the waiting room
+# error left to add
+#
+# to other players
 
 # instructions
 # :bid

@@ -386,7 +386,7 @@ defmodule CallbreakWeb.LobbyLive do
       if(suit in [:spade, :club], do: "card-black", else: "card-red")
     ]
 
-    #phx-mounted = {if @can_play?, do: JS.transition("transition_test", time: 2000)}
+    # phx-mounted = {if @can_play?, do: JS.transition("transition_test", time: 2000)}
     assigns =
       assigns
       |> assign(card_class: card_class)
@@ -399,7 +399,7 @@ defmodule CallbreakWeb.LobbyLive do
       class={@card_class}
       phx-click={JS.dispatch("clear-timer") |> JS.push("card_play")}
       phx-value-card_index={@index}
-      phx-mounted = {JS.transition("transition_test", time: 2000)}
+      phx-mounted={JS.transition("transition_test", time: 2000)}
     >
       <%= Card.card_to_string(@card) %>
     </div>

@@ -4,7 +4,9 @@ defmodule Callbreak.Hand do
   """
   alias Callbreak.{AutoPlay, Deck, Trick}
 
-  defstruct [
+  # todo: redefine hand API
+  # todo: remove dealing state
+  @enforce_keys [
     # reamining cards of each player
     :cards,
     # tricks played in current hand
@@ -14,35 +16,54 @@ defmodule Callbreak.Hand do
     :current_trick,
     # bidding done by the players
     :bids,
-    # dealing -> bidding -> playing
+    # dealing -> bidding -> playing -> complete
     :hand_state
   ]
 
+  defstruct @enforce_keys
+
+  alias __MODULE__, as: H
   # cards is the list of player and card
   def new do
-    %__MODULE__{
+    %H{
       cards: %{},
       tricks: %{},
       current_trick: Trick.new(),
       bids: %{},
-      hand_state: :dealing
+      hand_state: nil
     }
   end
 
-  def deal(%__MODULE__{} = hand, [_, _, _, _] = players) do
+  # todo remove hardcoded 4 in players
+  # todo guard for players check
+  def start_new(players) when is_list(players) and length(players) == 4 do
+    hand = H.new()
+
     card_chunks =
       Deck.distribute(Callbreak.Deck.new(), length(players))
 
     cards = Enum.zip(players, card_chunks) |> Map.new()
 
-    hand = %__MODULE__{hand | cards: cards, hand_state: :bidding}
+    hand = %H{hand | cards: cards, hand_state: :bidding}
+    {hand, cards}
+  end
+
+  def deal(%H{} = hand, [_, _, _, _] = players) do
+    card_chunks =
+      Deck.distribute(Callbreak.Deck.new(), length(players))
+
+    cards = Enum.zip(players, card_chunks) |> Map.new()
+
+    hand = %H{hand | cards: cards, hand_state: :bidding}
     {hand, cards}
   end
 
   def take_bid(%{hand_state: :bidding} = hand, player, bid) when bid >= 1 and bid <= 13 do
+    # be strict in this TODO
     bids = Map.put(hand.bids, player, bid)
     hand_state = if Enum.count(bids) == 4, do: :playing, else: hand.hand_state
-    {:ok, %{hand | bids: bids, hand_state: hand_state}}
+    hand = %{hand | bids: bids, hand_state: hand_state}
+    {:ok, hand, bidding_completed?(hand)}
   end
 
   def take_bid(%{hand_state: :bidding}, _, bid), do: {:error, {:invalid_bid, bid}}
@@ -71,6 +92,30 @@ defmodule Callbreak.Hand do
   end
 
   def play(_, _, _), do: {:error, :not_playing_currently}
+
+  def play_card(%H{hand_state: :playing} = hand, player, card) do
+    case validate_card_play(hand, player, card) do
+      {:ok, card_index} ->
+        rem_card =
+          hand.cards
+          |> Map.get(player)
+          |> List.delete_at(card_index)
+
+        hand = %{
+          hand
+          | cards: Map.put(hand.cards, player, rem_card),
+            current_trick: Trick.play(hand.current_trick, player, card)
+        }
+
+        {hand, winner} = maybe_find_trick_winner(hand)
+        {:ok, hand, winner, maybe_hand_completed(hand)}
+
+      {:error, err} ->
+        {:error, err}
+    end
+  end
+
+  def play_card(_, _, _), do: {:error, :not_playing_currently}
 
   def maybe_hand_completed(hand) do
     if hand_completed?(hand) do

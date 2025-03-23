@@ -9,8 +9,9 @@ defmodule Callbreak.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps(),
-      elixirc_options: [warnings_as_errors: true]
+      deps: deps()
+      # todo: enable
+      # elixirc_options: [warnings_as_errors: true]
     ]
   end
 

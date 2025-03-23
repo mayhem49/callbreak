@@ -39,3 +39,5 @@ npm-debug.log
 temp*
 tmp*
 *.log
+
+.tasks
