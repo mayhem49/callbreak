@@ -1,4 +1,4 @@
-defmodule CallbreakWeb.HomeLive do
+defmodule CallbreakWeb.NewGameLive do
   require Logger
   use CallbreakWeb, :live_view
   use Callbreak.Constants
@@ -24,17 +24,18 @@ defmodule CallbreakWeb.HomeLive do
      |> push_navigate(to: ~p"/lobby/#{game_id}/?player_id=#{player_id}")}
   end
 
+  # todo: only generate random id for not logged player
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(random_player_id: Player.random_player_id())
+     |> assign(player_id: Player.random_player_id())
      |> assign(player_id_length: @player_id_len)}
   end
 
   def render(assigns) do
     ~H"""
     <div class="container">
-      <h1>Welcome to Game Name</h1>
+      <h1 class="font-bold text-center">Welcome to Callbreak</h1>
       <form phx-submit="join_game">
         <div class="flex flex-col">
           <label for="username">Join as:</label>
@@ -45,7 +46,7 @@ defmodule CallbreakWeb.HomeLive do
               name="username"
               minlength={@player_id_length}
               placeholder="Username"
-              value={@random_player_id}
+              value={@player_id}
             />
           </div>
         </div>
