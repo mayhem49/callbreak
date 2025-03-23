@@ -24,16 +24,16 @@ defmodule CallbreakWeb.CoreComponents do
 
   ## Examples
 
-      <.modal id="confirm-modal">
-        This is a modal.
-      </.modal>
+  <.modal id="confirm-modal">
+  This is a modal.
+  </.modal>
 
   JS commands may be passed to the `:on_cancel` to configure
   the closing/cancel event, for example:
 
-      <.modal id="confirm" on_cancel={JS.navigate(~p"/posts")}>
-        This is another modal.
-      </.modal>
+  <.modal id="confirm" on_cancel={JS.navigate(~p"/posts")}>
+  This is another modal.
+  </.modal>
 
   """
   attr(:id, :string, required: true)
@@ -94,8 +94,8 @@ defmodule CallbreakWeb.CoreComponents do
 
   ## Examples
 
-      <.flash kind={:info} flash={@flash} />
-      <.flash kind={:info} phx-mounted={show("#flash")}>Welcome Back!</.flash>
+  <.flash kind={:info} flash={@flash} />
+  <.flash kind={:info} phx-mounted={show("#flash")}>Welcome Back!</.flash>
   """
   attr(:id, :string, default: "flash", doc: "the optional id of flash container")
   attr(:flash, :map, default: %{}, doc: "the map of flash messages to display")
@@ -137,7 +137,7 @@ defmodule CallbreakWeb.CoreComponents do
 
   ## Examples
 
-      <.flash_group flash={@flash} />
+  <.flash_group flash={@flash} />
   """
   attr(:flash, :map, required: true, doc: "the map of flash messages")
 
@@ -175,13 +175,13 @@ defmodule CallbreakWeb.CoreComponents do
 
   ## Examples
 
-      <.simple_form for={@form} phx-change="validate" phx-submit="save">
-        <.input field={@form[:email]} label="Email"/>
-        <.input field={@form[:username]} label="Username" />
-        <:actions>
-          <.button>Save</.button>
-        </:actions>
-      </.simple_form>
+  <.simple_form for={@form} phx-change="validate" phx-submit="save">
+  <.input field={@form[:email]} label="Email"/>
+  <.input field={@form[:username]} label="Username" />
+  <:actions>
+  <.button>Save</.button>
+  </:actions>
+  </.simple_form>
   """
   attr(:for, :any, required: true, doc: "the datastructure for the form")
   attr(:as, :any, default: nil, doc: "the server side parameter to collect all input under")
@@ -212,8 +212,8 @@ defmodule CallbreakWeb.CoreComponents do
 
   ## Examples
 
-      <.button>Send!</.button>
-      <.button phx-click="go" class="ml-2">Send!</.button>
+  <.button>Send!</.button>
+  <.button phx-click="go" class="ml-2">Send!</.button>
   """
   attr(:type, :string, default: nil)
   attr(:class, :string, default: nil)
@@ -248,7 +248,7 @@ defmodule CallbreakWeb.CoreComponents do
 
   This function accepts all HTML input types, considering that:
 
-    * You may also set `type="select"` to render a `<select>` tag
+  * You may also set `type="select"` to render a `<select>` tag
 
     * `type="checkbox"` is used exclusively to render boolean values
 
@@ -259,8 +259,8 @@ defmodule CallbreakWeb.CoreComponents do
 
   ## Examples
 
-      <.input field={@form[:email]} type="email" />
-      <.input name="my-input" errors={["oh no!"]} />
+  <.input field={@form[:email]} type="email" />
+  <.input name="my-input" errors={["oh no!"]} />
   """
   attr(:id, :any, default: nil)
   attr(:name, :any)
@@ -270,7 +270,7 @@ defmodule CallbreakWeb.CoreComponents do
   attr(:type, :string,
     default: "text",
     values: ~w(checkbox color date datetime-local email file hidden month number password
-               range radio search select tel text textarea time url week)
+    range radio search select tel text textarea time url week)
   )
 
   attr(:field, Phoenix.HTML.FormField,
@@ -285,7 +285,7 @@ defmodule CallbreakWeb.CoreComponents do
 
   attr(:rest, :global,
     include: ~w(accept autocomplete capture cols disabled form list max maxlength min minlength
-                multiple pattern placeholder readonly required rows size step)
+    multiple pattern placeholder readonly required rows size step)
   )
 
   slot(:inner_block)
@@ -443,10 +443,10 @@ defmodule CallbreakWeb.CoreComponents do
 
   ## Examples
 
-      <.table id="users" rows={@users}>
-        <:col :let={user} label="id"><%= user.id %></:col>
-        <:col :let={user} label="username"><%= user.username %></:col>
-      </.table>
+  <.table id="users" rows={@users}>
+  <:col :let={user} label="id"><%= user.id %></:col>
+  <:col :let={user} label="username"><%= user.username %></:col>
+  </.table>
   """
   attr(:id, :string, required: true)
   attr(:rows, :list, required: true)
@@ -520,10 +520,10 @@ defmodule CallbreakWeb.CoreComponents do
 
   ## Examples
 
-      <.list>
-        <:item title="Title"><%= @post.title %></:item>
-        <:item title="Views"><%= @post.views %></:item>
-      </.list>
+  <.list>
+  <:item title="Title"><%= @post.title %></:item>
+  <:item title="Views"><%= @post.views %></:item>
+  </.list>
   """
   slot :item, required: true do
     attr(:title, :string, required: true)
@@ -547,7 +547,7 @@ defmodule CallbreakWeb.CoreComponents do
 
   ## Examples
 
-      <.back navigate={~p"/posts"}>Back to posts</.back>
+  <.back navigate={~p"/posts"}>Back to posts</.back>
   """
   attr(:navigate, :any, required: true)
   slot(:inner_block, required: true)
@@ -581,8 +581,8 @@ defmodule CallbreakWeb.CoreComponents do
 
   ## Examples
 
-      <.icon name="hero-x-mark-solid" />
-      <.icon name="hero-arrow-path" class="ml-1 w-3 h-3 animate-spin" />
+  <.icon name="hero-x-mark-solid" />
+  <.icon name="hero-arrow-path" class="ml-1 w-3 h-3 animate-spin" />
   """
   attr(:name, :string, required: true)
   attr(:class, :string, default: nil)

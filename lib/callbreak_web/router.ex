@@ -16,7 +16,7 @@ defmodule CallbreakWeb.Router do
 
   scope "/", CallbreakWeb do
     pipe_through(:browser)
-    live("/live", HomeLive)
+    live("/new_game", NewGameLive)
     live("/lobby/:game_id", LobbyLive)
     live("/test", TestLive)
 

@@ -10,6 +10,10 @@ defmodule CallbreakWeb.LobbyLive do
 
   use Callbreak.Constants
 
+  @moduledoc """
+  This is where you wait for other players to join the game
+  """
+
   @timer_el_id "timer"
   # in seconds
   use CallbreakWeb, :live_view
@@ -21,6 +25,7 @@ defmodule CallbreakWeb.LobbyLive do
   # only valid after waiting state is completed
   # current_player whose turn to play/bid
   # updated after every bid and every play, trick completion and when {:cards, dealer, cards}
+
   # mount
   def mount(%{"game_id" => game_id, "player_id" => player_id}, _session, socket) do
     if connected?(socket) do
@@ -183,7 +188,7 @@ defmodule CallbreakWeb.LobbyLive do
 
     {:noreply,
      push_navigate(socket,
-       to: ~p"/live"
+       to: ~p"/new_game"
      )}
   end
 
@@ -243,7 +248,7 @@ defmodule CallbreakWeb.LobbyLive do
   def render(%{current_state: :waiting} = assigns) do
     ~H"""
     <div class="container">
-      <h1>Game Lobby</h1>
+      <h1 class="font-bold text-center">Game Lobby <%= @state.game_id %></h1>
       <button
         class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
         phx-click="play_bots"
@@ -252,17 +257,10 @@ defmodule CallbreakWeb.LobbyLive do
         play with bots
       </button>
 
-      <div>
-        This is a game lobby.
-      </div>
+      <div>player_id: <span class="font-bold"><%= @state.player_id %></span></div>
 
-      <div>
-        <div>player_id: <%= @state.player_id %></div>
-        <div>game_id: <%= @state.game_id %></div>
-      </div>
-
-      <div>
-        <h1>waiting for players</h1>
+      <div class="py-4">
+        <h1>waiting for players...</h1>
         <ul>
           <li><%= @state.player_id %></li>
           <%= for {player, _pos} <- @state.opponents do %>
