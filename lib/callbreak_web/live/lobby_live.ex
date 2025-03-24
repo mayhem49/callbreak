@@ -92,7 +92,7 @@ defmodule CallbreakWeb.LobbyLive do
   def handle_cast(:bid = msg, socket) do
     Logger.info("#{inspect(msg)}")
 
-    {:noreply, push_event(socket, "start-timer", %{timer: @timer_in_sec, id: @timer_el_id})}
+    {:noreply, push_event(socket, "start-timer", %{timer: @allowed_move_time, id: @timer_el_id})}
   end
 
   def handle_cast({:bid, player, bid} = msg, socket) do
@@ -126,7 +126,7 @@ defmodule CallbreakWeb.LobbyLive do
     Logger.info("#{inspect(msg)}")
 
     # timer is set after :play and :bid message
-    {:noreply, push_event(socket, "start-timer", %{timer: @timer_in_sec, id: @timer_el_id})}
+    {:noreply, push_event(socket, "start-timer", %{timer: @allowed_move_time, id: @timer_el_id})}
   end
 
   def handle_cast({:trick_winner, winner} = msg, socket) do
@@ -177,7 +177,7 @@ defmodule CallbreakWeb.LobbyLive do
   end
 
   # handle_info
-  # this is called after @timer_in_sec seconds
+  # this is called after @allowed_move_time seconds
   # if there have been no move by the player
   # maybe do it in genserver
   # handle it

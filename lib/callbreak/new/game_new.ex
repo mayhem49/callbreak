@@ -14,8 +14,7 @@ defmodule Callbreak.GameNew do
   # trick ends `:trick_winner`
 
   # send *_complete message at the end (for instance, send :scorecard before :hand_complete
-  # todo add rules regardig total bid count reachign 10
-
+  # todo add rules regardig total bid count reaching 10
 
   @enforce_keys [
     :game_id,
@@ -93,7 +92,6 @@ defmodule Callbreak.GameNew do
     end
   end
 
-
   # todo: timer logic is not copied in this module
   # code concerning notify_server
 
@@ -137,7 +135,6 @@ defmodule Callbreak.GameNew do
     |> start_new_hand()
   end
 
-
   # BID
   defp handle_make_bid(%G{current_player: player} = game, player, bid) do
     with {:ok, hand, bidding_completed?} <- Hand.take_bid(game.current_hand, player, bid) do
@@ -145,6 +142,7 @@ defmodule Callbreak.GameNew do
         %{game | current_hand: hand}
         |> notify_all({:bid, player, bid})
         |> cycle_current_player()
+        |> notify_server(:move_received)
 
       if bidding_completed? do
         game |> notify_all(:hand_play_start) |> ask_current_player_to_play()
@@ -172,8 +170,11 @@ defmodule Callbreak.GameNew do
       game =
         %{game | current_hand: hand}
         |> notify_all({:play, player, card})
+        |> notify_server(:move_received)
 
-      # TODO: refactor this
+      # todo refactor above two into another
+      # do same for when success in handle_bid
+
       if trick_winner do
         game =
           %{game | current_player: trick_winner}
@@ -183,7 +184,6 @@ defmodule Callbreak.GameNew do
         if hand_scorecard,
           do: handle_hand_completion(game, hand_scorecard),
           else: ask_current_player_to_play(game)
-
       else
         game
         |> cycle_current_player()
@@ -196,25 +196,8 @@ defmodule Callbreak.GameNew do
     {:error, :out_of_turn}
   end
 
-  # todo: review
-  # review don't use Map.put / Map.get
-  defp calculate_points(scorecard) do
-    acc =
-      Enum.reduce(scorecard, %{}, fn trick_scorecard, acc ->
-        Enum.reduce(trick_scorecard, acc, fn {player, {bid, extra_trick}}, acc ->
-          Map.update(acc, player, {bid, extra_trick}, fn
-            # round second el to first el todo
-            {curr_bid, curr_extra_trick} -> {curr_bid + bid, curr_extra_trick + extra_trick}
-          end)
-        end)
-      end)
-
-    Enum.reduce(acc, %{}, fn
-      {player, {bid, extra_trick}}, acc -> Map.put(acc, player, bid + extra_trick / 10)
-    end)
-  end
-
   # TODO: review
+  # use float instead of tuple
   defp handle_hand_completion(game, hand_scorecard) do
     acc_scorecard = [hand_scorecard | game.scorecard]
 
@@ -238,7 +221,23 @@ defmodule Callbreak.GameNew do
     end
   end
 
+  # todo: review
+  # review don't use Map.put / Map.get
+  defp calculate_points(scorecard) do
+    acc =
+      Enum.reduce(scorecard, %{}, fn trick_scorecard, acc ->
+        Enum.reduce(trick_scorecard, acc, fn {player, {bid, extra_trick}}, acc ->
+          Map.update(acc, player, {bid, extra_trick}, fn
+            # round second el to first el todo
+            {curr_bid, curr_extra_trick} -> {curr_bid + bid, curr_extra_trick + extra_trick}
+          end)
+        end)
+      end)
 
+    Enum.reduce(acc, %{}, fn
+      {player, {bid, extra_trick}}, acc -> Map.put(acc, player, bid + extra_trick / 10)
+    end)
+  end
 
   defp start_new_hand(%G{} = game) do
     {dealer, current_player} = get_next_two_player(game, game.dealer)
@@ -279,11 +278,11 @@ defmodule Callbreak.GameNew do
   defp player_instruction(player, message), do: {:notify_player, player, message}
 
   defp ask_current_player_to_play(%G{} = game) do
-    notify_current_player(game, :play)
+    game |> notify_current_player(:play) |> notify_server(:expect_move)
   end
 
   defp ask_current_player_to_bid(%G{} = game) do
-    notify_current_player(game, :bid)
+    notify_current_player(game, :bid) |> notify_server(:expect_move)
   end
 
   defp notify_current_player(game, message) do
@@ -295,7 +294,7 @@ defmodule Callbreak.GameNew do
   end
 
   defp notify_server(game, message) do
-    %G{game | instructions: [{:notify_server, message} | game.instructions]}
+    %G{game | instructions: [{:to_server, message} | game.instructions]}
   end
 
   defp notify_except(game, except_player, message) do
@@ -342,3 +341,8 @@ end
 # :game_start
 # hand_start
 # {:cards, dealer, cards}
+# {:scorecard, hand_score, total_score}
+# :hand_complete
+
+# game server
+# :advance_timer

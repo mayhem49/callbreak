@@ -20,8 +20,9 @@ defmodule Callbreak.GameServer do
     GenServer.cast(via_tuple(game_id), {:play, player_pid, play_card})
   end
 
-  def join_game(game_id, player_id),
-    do: GenServer.call(via_tuple(game_id), {:join, player_id})
+  def join_game(game_id, player_id) do
+    GenServer.call(via_tuple(game_id), {:join, player_id})
+  end
 
   # call_back
   @impl true
@@ -73,7 +74,7 @@ defmodule Callbreak.GameServer do
     Logger.info("#{inspect(msg)}")
 
     case @autoplay do
-      false ->
+      true ->
         if timer == state.timer do
           Logger.info("timeout- timer: #{inspect(msg)} game_id: #{state.game.game_id}")
 
@@ -86,9 +87,6 @@ defmodule Callbreak.GameServer do
         else
           {:noreply, state}
         end
-
-      true ->
-        {:noreply, state}
     end
   end
 
@@ -136,7 +134,7 @@ defmodule Callbreak.GameServer do
     timer = state.timer + 1
 
     if Game.running?(state.game) do
-      Process.send_after(self(), {:timer, timer}, @timer_in_msec)
+      Process.send_after(self(), {:timer, timer}, @allowed_move_time_ms)
       Logger.info("setting timer: #{timer}")
     end
 

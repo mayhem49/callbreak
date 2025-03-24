@@ -7,15 +7,15 @@ defmodule Callbreak.Constants do
       @suites [:spade, :heart, :club, :diamond]
       @ranks [:ace, 2, 3, 4, 5, 6, 7, 8, 9, 10, :jack, :queen, :king]
 
-      @timer_in_sec 20
-      @timer_in_msec @timer_in_sec * 1000
+      @allowed_move_time 20
+      @allowed_move_time_ms @allowed_move_time * 1000
 
       @player_id_len 6
       @game_id_len 6
 
       @bot_delay_in_msec 5 * 1000
 
-      @autoplay false
+      @autoplay true
     end
   end
 end
